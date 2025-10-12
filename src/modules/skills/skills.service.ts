@@ -1,0 +1,197 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateSkillDto, UpdateSkillDto, AddCandidateSkillDto, UpdateCandidateSkillDto, AddStudentSkillDto, UpdateStudentSkillDto } from '../../dto/skill.dto';
+
+@Injectable()
+export class SkillsService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(createSkillDto: CreateSkillDto) {
+    return this.prisma.skill.create({
+      data: createSkillDto,
+    });
+  }
+
+  async findAll() {
+    return this.prisma.skill.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findOne(id: string) {
+    const skill = await this.prisma.skill.findUnique({
+      where: { id },
+    });
+
+    if (!skill) {
+      throw new NotFoundException('Навык не найден');
+    }
+
+    return skill;
+  }
+
+  async update(id: string, updateSkillDto: UpdateSkillDto) {
+    await this.findOne(id);
+
+    return this.prisma.skill.update({
+      where: { id },
+      data: updateSkillDto,
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+
+    await this.prisma.skill.delete({
+      where: { id },
+    });
+
+    return { message: 'Навык успешно удален' };
+  }
+
+  // Навыки кандидата
+  async addCandidateSkill(candidateId: string, addSkillDto: AddCandidateSkillDto) {
+    const { skillId, level } = addSkillDto;
+
+    return this.prisma.candidateSkill.upsert({
+      where: {
+        candidateId_skillId: {
+          candidateId,
+          skillId,
+        },
+      },
+      update: { level },
+      create: {
+        candidateId,
+        skillId,
+        level,
+      },
+      include: {
+        skill: true,
+      },
+    });
+  }
+
+  async updateCandidateSkill(candidateId: string, skillId: string, updateDto: UpdateCandidateSkillDto) {
+    const candidateSkill = await this.prisma.candidateSkill.findUnique({
+      where: {
+        candidateId_skillId: {
+          candidateId,
+          skillId,
+        },
+      },
+    });
+
+    if (!candidateSkill) {
+      throw new NotFoundException('Навык кандидата не найден');
+    }
+
+    return this.prisma.candidateSkill.update({
+      where: {
+        candidateId_skillId: {
+          candidateId,
+          skillId,
+        },
+      },
+      data: updateDto,
+      include: {
+        skill: true,
+      },
+    });
+  }
+
+  async removeCandidateSkill(candidateId: string, skillId: string) {
+    await this.prisma.candidateSkill.delete({
+      where: {
+        candidateId_skillId: {
+          candidateId,
+          skillId,
+        },
+      },
+    });
+
+    return { message: 'Навык кандидата успешно удален' };
+  }
+
+  async getCandidateSkills(candidateId: string) {
+    return this.prisma.candidateSkill.findMany({
+      where: { candidateId },
+      include: {
+        skill: true,
+      },
+    });
+  }
+
+  // Навыки студента
+  async addStudentSkill(studentId: string, addSkillDto: AddStudentSkillDto) {
+    const { skillId, level } = addSkillDto;
+
+    return this.prisma.studentSkill.upsert({
+      where: {
+        studentId_skillId: {
+          studentId,
+          skillId,
+        },
+      },
+      update: { level },
+      create: {
+        studentId,
+        skillId,
+        level,
+      },
+      include: {
+        skill: true,
+      },
+    });
+  }
+
+  async updateStudentSkill(studentId: string, skillId: string, updateDto: UpdateStudentSkillDto) {
+    const studentSkill = await this.prisma.studentSkill.findUnique({
+      where: {
+        studentId_skillId: {
+          studentId,
+          skillId,
+        },
+      },
+    });
+
+    if (!studentSkill) {
+      throw new NotFoundException('Навык студента не найден');
+    }
+
+    return this.prisma.studentSkill.update({
+      where: {
+        studentId_skillId: {
+          studentId,
+          skillId,
+        },
+      },
+      data: updateDto,
+      include: {
+        skill: true,
+      },
+    });
+  }
+
+  async removeStudentSkill(studentId: string, skillId: string) {
+    await this.prisma.studentSkill.delete({
+      where: {
+        studentId_skillId: {
+          studentId,
+          skillId,
+        },
+      },
+    });
+
+    return { message: 'Навык студента успешно удален' };
+  }
+
+  async getStudentSkills(studentId: string) {
+    return this.prisma.studentSkill.findMany({
+      where: { studentId },
+      include: {
+        skill: true,
+      },
+    });
+  }
+}

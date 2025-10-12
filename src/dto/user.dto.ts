@@ -1,0 +1,179 @@
+import { IsString, IsOptional, IsEmail, IsEnum, IsDateString } from 'class-validator';
+import { UserRole } from '@prisma/client';
+
+export class CreateUserDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+
+  @IsEnum(UserRole)
+  role: UserRole;
+}
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
+}
+
+export class CreateHRProfileDto {
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  lastName: string;
+
+  @IsString()
+  company: string;
+
+  @IsString()
+  position: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
+
+export class UpdateHRProfileDto {
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
+
+export class CreateCandidateProfileDto {
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  lastName: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  resumeUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedinUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  githubUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  portfolioUrl?: string;
+}
+
+export class UpdateCandidateProfileDto {
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  resumeUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedinUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  githubUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  portfolioUrl?: string;
+}
+
+export class CreateUniversityProfileDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  address: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
+}
+
+export class UpdateUniversityProfileDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
+}

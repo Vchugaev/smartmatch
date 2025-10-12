@@ -1,0 +1,324 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Роли пользователей
+enum UserRole {
+  HR
+  CANDIDATE
+  UNIVERSITY
+}
+
+// Статус вакансии
+enum JobStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+// Статус отклика
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+  INTERVIEW_SCHEDULED
+  HIRED
+}
+
+// Тип вакансии
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+}
+
+// Уровень опыта
+enum ExperienceLevel {
+  ENTRY
+  JUNIOR
+  MIDDLE
+  SENIOR
+  LEAD
+}
+
+// Модель пользователя
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  hrProfile        HRProfile?
+  candidateProfile CandidateProfile?
+  universityProfile UniversityProfile?
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// Профиль HR
+model HRProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String
+  lastName  String
+  company   String
+  position  String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs  Job[]
+  applications Application[]
+
+  @@map("hr_profiles")
+}
+
+// Профиль соискателя
+model CandidateProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  firstName    String
+  lastName     String
+  phone        String?
+  dateOfBirth  DateTime?
+  location     String?
+  bio          String?
+  resumeUrl    String?
+  linkedinUrl  String?
+  githubUrl    String?
+  portfolioUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Связи
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills       CandidateSkill[]
+  experiences  Experience[]
+  educations   Education[]
+  applications Application[]
+
+  @@map("candidate_profiles")
+}
+
+// Профиль университета
+model UniversityProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  address   String
+  phone     String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students   Student[]
+  educations Education[]
+
+  @@map("university_profiles")
+}
+
+// Студент
+model Student {
+  id             String   @id @default(cuid())
+  universityId   String
+  firstName      String
+  lastName       String
+  email          String
+  studentId      String
+  yearOfStudy    Int
+  major          String
+  gpa            Float?
+  phone          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Связи
+  university UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  skills     StudentSkill[]
+
+  @@map("students")
+}
+
+// Навыки кандидата
+model CandidateSkill {
+  id          String @id @default(cuid())
+  candidateId String
+  skillId     String
+  level       Int    @default(1) // 1-5 уровень владения
+
+  // Связи
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill     Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, skillId])
+  @@map("candidate_skills")
+}
+
+// Навыки студента
+model StudentSkill {
+  id        String @id @default(cuid())
+  studentId String
+  skillId   String
+  level     Int    @default(1) // 1-5 уровень владения
+
+  // Связи
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, skillId])
+  @@map("student_skills")
+}
+
+// Навыки
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Связи
+  candidateSkills CandidateSkill[]
+  studentSkills   StudentSkill[]
+  jobSkills       JobSkill[]
+
+  @@map("skills")
+}
+
+// Опыт работы кандидата
+model Experience {
+  id          String   @id @default(cuid())
+  candidateId String
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  isCurrent   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Связи
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("experiences")
+}
+
+// Образование
+model Education {
+  id           String   @id @default(cuid())
+  candidateId  String?
+  universityId String?
+  degree       String
+  field        String
+  startDate    DateTime
+  endDate      DateTime?
+  gpa          Float?
+  description  String?
+  isCurrent    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Связи
+  candidate  CandidateProfile?  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  university UniversityProfile? @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("educations")
+}
+
+// Вакансии
+model Job {
+  id               String      @id @default(cuid())
+  hrId             String
+  title            String
+  description      String
+  requirements     String?
+  responsibilities String?
+  benefits         String?
+  salaryMin        Int?
+  salaryMax        Int?
+  currency         String       @default("RUB")
+  location         String
+  type             JobType
+  status           JobStatus    @default(ACTIVE)
+  experienceLevel  ExperienceLevel
+  remote           Boolean      @default(false)
+  publishedAt      DateTime?
+  deadline         DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Связи
+  hr          HRProfile      @relation(fields: [hrId], references: [id], onDelete: Cascade)
+  skills      JobSkill[]
+  applications Application[]
+
+  @@index([status])
+  @@index([type])
+  @@index([experienceLevel])
+  @@index([location])
+  @@index([remote])
+  @@index([publishedAt])
+  @@map("jobs")
+}
+
+// Навыки для вакансии
+model JobSkill {
+  id       String @id @default(cuid())
+  jobId    String
+  skillId  String
+  required Boolean @default(true)
+  level    Int?    // Минимальный уровень навыка
+
+  // Связи
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, skillId])
+  @@map("job_skills")
+}
+
+// Отклики на вакансии
+model Application {
+  id        String            @id @default(cuid())
+  jobId     String
+  candidateId String
+  hrId      String
+  status    ApplicationStatus @default(PENDING)
+  coverLetter String?
+  resumeUrl String?
+  notes     String? // Заметки HR
+  appliedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  job       Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  hr        HRProfile       @relation(fields: [hrId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, candidateId])
+  @@index([status])
+  @@index([appliedAt])
+  @@map("applications")
+}
