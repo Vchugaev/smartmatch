@@ -76,6 +76,12 @@ export class AuthService {
       throw new UnauthorizedException('Неверные учетные данные');
     }
 
+    // Проверяем, активен ли пользователь
+    if (!user.isActive) {
+      console.log(`Login failed: User account is inactive for email: ${email}`);
+      throw new UnauthorizedException('Аккаунт заблокирован');
+    }
+
     // Проверяем пароль
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
