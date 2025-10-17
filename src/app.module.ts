@@ -10,6 +10,8 @@ import { UniversitiesModule } from './modules/universities/universities.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { EducationsModule } from './modules/educations/educations.module';
+import { PublicModule } from './modules/public/public.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { PrismaService } from './modules/prisma/prisma.service';
 
 @Module({
@@ -28,6 +30,8 @@ import { PrismaService } from './modules/prisma/prisma.service';
     ProfilesModule,
     ExperiencesModule,
     EducationsModule,
+    PublicModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -15,6 +15,8 @@ enum UserRole {
   HR
   CANDIDATE
   UNIVERSITY
+  ADMIN
+  ANALYST
 }
 
 // Статус вакансии
@@ -22,6 +24,8 @@ enum JobStatus {
   ACTIVE
   PAUSED
   CLOSED
+  DRAFT
+  ARCHIVED
 }
 
 // Статус отклика
@@ -32,6 +36,7 @@ enum ApplicationStatus {
   REJECTED
   INTERVIEW_SCHEDULED
   HIRED
+  WITHDRAWN
 }
 
 // Тип вакансии
@@ -40,6 +45,8 @@ enum JobType {
   PART_TIME
   INTERNSHIP
   CONTRACT
+  FREELANCE
+  VOLUNTEER
 }
 
 // Уровень опыта
@@ -49,7 +56,83 @@ enum ExperienceLevel {
   MIDDLE
   SENIOR
   LEAD
+  EXPERT
 }
+
+// Типы событий для аналитики
+enum EventType {
+  USER_LOGIN
+  USER_REGISTER
+  JOB_CREATED
+  JOB_UPDATED
+  JOB_VIEWED
+  APPLICATION_CREATED
+  APPLICATION_UPDATED
+  PROFILE_UPDATED
+  SKILL_ADDED
+  SKILL_UPDATED
+  SEARCH_PERFORMED
+  MATCH_FOUND
+  INTERVIEW_SCHEDULED
+  HIRE_COMPLETED
+}
+
+// Статусы AI обработки
+enum AIProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRY
+}
+
+// Типы AI моделей
+enum AIModelType {
+  RESUME_PARSING
+  SKILL_EXTRACTION
+  JOB_MATCHING
+  CANDIDATE_RANKING
+  SALARY_PREDICTION
+  SKILL_GAP_ANALYSIS
+  TEXT_ANALYSIS
+  SENTIMENT_ANALYSIS
+}
+
+// Типы уведомлений
+enum NotificationType {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+  SYSTEM
+}
+
+// Приоритеты уведомлений
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Статусы уведомлений
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// Статусы модерации
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DRAFT
+}
+
+// ==================== ОСНОВНЫЕ МОДЕЛИ ====================
 
 // Модель пользователя
 model User {
@@ -59,6 +142,7 @@ model User {
   role      UserRole
   isActive  Boolean  @default(true)
   lastLogin DateTime?
+  loginCount Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -66,9 +150,13 @@ model User {
   hrProfile        HRProfile?
   candidateProfile CandidateProfile?
   universityProfile UniversityProfile?
+  events          AnalyticsEvent[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
 
   @@index([email])
   @@index([role])
+  @@index([lastLogin])
   @@map("users")
 }
 
@@ -106,6 +194,8 @@ model CandidateProfile {
   linkedinUrl  String?
   githubUrl    String?
   portfolioUrl String?
+  isAvailable  Boolean  @default(true) // Доступен для работы
+  expectedSalary Int?   // Ожидаемая зарплата
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -115,7 +205,9 @@ model CandidateProfile {
   experiences  Experience[]
   educations   Education[]
   applications Application[]
+  matches      JobMatch[]   // AI матчинг
 
+  @@index([isAvailable])
   @@map("candidate_profiles")
 }
 
@@ -129,6 +221,7 @@ model UniversityProfile {
   website   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  analytics UniversityAnalytics? // Аналитика университета
 
   // Связи
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -196,13 +289,17 @@ model Skill {
   name        String   @unique
   category    String?
   description String?
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  analytics   SkillAnalytics? // Аналитика навыка
 
   // Связи
   candidateSkills CandidateSkill[]
   studentSkills   StudentSkill[]
   jobSkills       JobSkill[]
 
+  @@index([category])
+  @@index([isActive])
   @@map("skills")
 }
 
@@ -266,6 +363,12 @@ model Job {
   remote           Boolean      @default(false)
   publishedAt      DateTime?
   deadline         DateTime?
+  views            Int          @default(0) // Количество просмотров
+  applicationsCount Int         @default(0) // Количество откликов
+  moderationStatus ModerationStatus @default(PENDING) // Статус модерации
+  moderatedAt      DateTime?    // Дата модерации
+  moderatorId      String?     // ID модератора
+  moderationNotes  String?     // Заметки модератора
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -273,6 +376,7 @@ model Job {
   hr          HRProfile      @relation(fields: [hrId], references: [id], onDelete: Cascade)
   skills      JobSkill[]
   applications Application[]
+  matches     JobMatch[]     // AI матчинг
 
   @@index([status])
   @@index([type])
@@ -280,6 +384,7 @@ model Job {
   @@index([location])
   @@index([remote])
   @@index([publishedAt])
+  @@index([views])
   @@map("jobs")
 }
 
@@ -321,4 +426,240 @@ model Application {
   @@index([status])
   @@index([appliedAt])
   @@map("applications")
+}
+
+// ==================== РАСШИРЕННЫЕ МОДЕЛИ ДЛЯ АНАЛИТИКИ И AI ====================
+
+// События для аналитики
+model AnalyticsEvent {
+  id        String    @id @default(cuid())
+  userId    String?
+  eventType EventType
+  entityId  String?   // ID связанной сущности (job, application, etc.)
+  entityType String?  // Тип сущности
+  metadata  Json?     // Дополнительные данные события
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  // Связи
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([entityId])
+  @@map("analytics_events")
+}
+
+// AI обработка и результаты
+model AIProcessing {
+  id          String              @id @default(cuid())
+  entityId    String              // ID обрабатываемой сущности
+  entityType  String              // Тип сущности (resume, job, application)
+  modelType   AIModelType
+  status      AIProcessingStatus  @default(PENDING)
+  inputData   Json?               // Входные данные
+  outputData  Json?               // Результаты обработки
+  confidence  Float?              // Уровень уверенности (0-1)
+  errorMessage String?
+  retryCount  Int                 @default(0)
+  maxRetries  Int                 @default(3)
+  processingTime Int?             // Время обработки в мс
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  completedAt DateTime?
+
+  @@index([entityId])
+  @@index([modelType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ai_processing")
+}
+
+// Матчинг кандидатов и вакансий
+model JobMatch {
+  id           String   @id @default(cuid())
+  jobId        String
+  candidateId  String
+  matchScore   Float    // Оценка совпадения (0-100)
+  skillMatch   Float    // Совпадение навыков
+  experienceMatch Float // Совпадение опыта
+  locationMatch Float   // Совпадение локации
+  salaryMatch   Float    // Совпадение зарплаты
+  aiGenerated  Boolean  @default(false)
+  isRecommended Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Связи
+  job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, candidateId])
+  @@index([matchScore])
+  @@index([isRecommended])
+  @@map("job_matches")
+}
+
+// Уведомления
+model Notification {
+  id          String               @id @default(cuid())
+  userId      String
+  type        NotificationType
+  priority    NotificationPriority @default(MEDIUM)
+  status      NotificationStatus   @default(PENDING)
+  title       String
+  message     String
+  data        Json?                // Дополнительные данные
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  // Связи
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("notifications")
+}
+
+// Аудит действий пользователей
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String   // Действие (CREATE, UPDATE, DELETE, LOGIN, etc.)
+  entityType  String   // Тип сущности
+  entityId    String   // ID сущности
+  oldValues   Json?    // Старые значения
+  newValues   Json?    // Новые значения
+  ipAddress   String?
+  userAgent   String?
+  sessionId   String?
+  createdAt   DateTime @default(now())
+
+  // Связи
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Статистика по навыкам
+model SkillAnalytics {
+  id              String   @id @default(cuid())
+  skillId         String
+  totalCandidates Int      @default(0)
+  totalStudents   Int      @default(0)
+  totalJobs       Int      @default(0)
+  averageLevel    Float?
+  demandScore     Float?   // Показатель востребованности
+  salaryImpact    Float?   // Влияние на зарплату
+  trendDirection  String?  // UP, DOWN, STABLE
+  lastUpdated     DateTime @default(now())
+
+  // Связи
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId])
+  @@index([demandScore])
+  @@map("skill_analytics")
+}
+
+// Аналитика по компаниям
+model CompanyAnalytics {
+  id                    String   @id @default(cuid())
+  companyName           String
+  totalJobs             Int      @default(0)
+  activeJobs            Int      @default(0)
+  totalApplications     Int      @default(0)
+  hireRate              Float?   // Процент найма
+  averageTimeToHire     Int?     // Среднее время до найма (дни)
+  averageSalary         Float?
+  topSkills             Json?    // Топ навыки
+  employeeRetention     Float?   // Удержание сотрудников
+  lastUpdated           DateTime @default(now())
+
+  @@unique([companyName])
+  @@index([hireRate])
+  @@map("company_analytics")
+}
+
+// Аналитика по университетам
+model UniversityAnalytics {
+  id                    String   @id @default(cuid())
+  universityId          String
+  totalStudents         Int      @default(0)
+  studentsWithSkills    Int      @default(0)
+  placementRate         Float?   // Процент трудоустройства
+  averageSalary         Float?
+  topEmployers          Json?    // Топ работодатели
+  skillDistribution     Json?    // Распределение навыков
+  employmentTrends      Json?    // Тренды трудоустройства
+  lastUpdated           DateTime @default(now())
+
+  // Связи
+  university UniversityProfile @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId])
+  @@map("university_analytics")
+}
+
+// Системные настройки
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
+}
+
+// Шаблоны для AI
+model AITemplate {
+  id          String      @id @default(cuid())
+  name        String
+  modelType   AIModelType
+  template    String      // Шаблон промпта
+  parameters  Json?       // Параметры шаблона
+  version     String      @default("1.0")
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([modelType])
+  @@index([isActive])
+  @@map("ai_templates")
+}
+
+// Логи AI запросов
+model AILog {
+  id            String   @id @default(cuid())
+  modelType     AIModelType
+  inputTokens   Int?
+  outputTokens  Int?
+  cost          Float?
+  responseTime  Int?     // Время ответа в мс
+  success       Boolean
+  errorMessage  String?
+  requestData   Json?
+  responseData  Json?
+  createdAt     DateTime @default(now())
+
+  @@index([modelType])
+  @@index([success])
+  @@index([createdAt])
+  @@map("ai_logs")
 }
