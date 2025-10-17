@@ -38,6 +38,10 @@ export class CreateHRProfileDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarId?: string;
 }
 
 export class UpdateHRProfileDto {
@@ -60,6 +64,10 @@ export class UpdateHRProfileDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarId?: string;
 }
 
 export class CreateCandidateProfileDto {
@@ -87,7 +95,11 @@ export class CreateCandidateProfileDto {
 
   @IsOptional()
   @IsString()
-  resumeUrl?: string;
+  avatarId?: string;
+
+  @IsOptional()
+  @IsString()
+  resumeId?: string;
 
   @IsOptional()
   @IsString()
@@ -129,7 +141,11 @@ export class UpdateCandidateProfileDto {
 
   @IsOptional()
   @IsString()
-  resumeUrl?: string;
+  avatarId?: string;
+
+  @IsOptional()
+  @IsString()
+  resumeId?: string;
 
   @IsOptional()
   @IsString()
@@ -158,6 +174,10 @@ export class CreateUniversityProfileDto {
   @IsOptional()
   @IsString()
   website?: string;
+
+  @IsOptional()
+  @IsString()
+  logoId?: string;
 }
 
 export class UpdateUniversityProfileDto {
@@ -176,4 +196,8 @@ export class UpdateUniversityProfileDto {
   @IsOptional()
   @IsString()
   website?: string;
+
+  @IsOptional()
+  @IsString()
+  logoId?: string;
 }

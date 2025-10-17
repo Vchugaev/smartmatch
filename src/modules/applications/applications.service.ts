@@ -122,7 +122,15 @@ export class ApplicationsService {
             lastName: true,
             phone: true,
             bio: true,
-            resumeUrl: true,
+            resume: {
+              select: {
+                id: true,
+                url: true,
+                originalName: true,
+                mimeType: true,
+                size: true,
+              }
+            },
             linkedinUrl: true,
             githubUrl: true,
             portfolioUrl: true,

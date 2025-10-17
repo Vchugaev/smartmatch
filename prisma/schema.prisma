@@ -132,6 +132,27 @@ enum ModerationStatus {
   DRAFT
 }
 
+// Типы медиа файлов
+enum MediaType {
+  AVATAR
+  LOGO
+  RESUME
+  PORTFOLIO
+  DOCUMENT
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+// Статусы медиа файлов
+enum MediaStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  DELETED
+}
+
 // ==================== ОСНОВНЫЕ МОДЕЛИ ====================
 
 // Модель пользователя
@@ -153,11 +174,43 @@ model User {
   events          AnalyticsEvent[]
   notifications   Notification[]
   auditLogs       AuditLog[]
+  mediaFiles      MediaFile[] // Загруженные медиа файлы
 
   @@index([email])
   @@index([role])
   @@index([lastLogin])
   @@map("users")
+}
+
+// Медиа файлы
+model MediaFile {
+  id          String      @id @default(cuid())
+  originalName String     // Оригинальное имя файла
+  fileName    String     // Имя файла в хранилище
+  mimeType    String     // MIME тип файла
+  size        Int        // Размер файла в байтах
+  url         String     // URL файла
+  bucket      String     // Bucket в MinIO
+  objectName  String     // Имя объекта в MinIO
+  type        MediaType  // Тип медиа файла
+  status      MediaStatus @default(UPLOADING)
+  metadata    Json?      // Дополнительные метаданные
+  uploadedBy  String     // ID пользователя, загрузившего файл
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Связи
+  uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  hrAvatars  HRProfile[]   @relation("HRAvatar") // Связь с HR профилями
+  candidateAvatars CandidateProfile[] @relation("CandidateAvatar") // Связь с аватарами кандидатов
+  candidateResumes CandidateProfile[] @relation("CandidateResume") // Связь с резюме кандидатов
+  universityLogos UniversityProfile[] @relation("UniversityLogo") // Связь с логотипами университетов
+
+  @@index([type])
+  @@index([status])
+  @@index([uploadedBy])
+  @@index([createdAt])
+  @@map("media_files")
 }
 
 // Профиль HR
@@ -169,11 +222,13 @@ model HRProfile {
   company   String
   position  String
   phone     String?
+  avatarId  String?  // ID аватара в MediaFile
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Связи
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar MediaFile? @relation("HRAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
   jobs  Job[]
   applications Application[]
 
@@ -190,7 +245,8 @@ model CandidateProfile {
   dateOfBirth  DateTime?
   location     String?
   bio          String?
-  resumeUrl    String?
+  avatarId     String?  // ID аватара в MediaFile
+  resumeId     String?  // ID резюме в MediaFile
   linkedinUrl  String?
   githubUrl    String?
   portfolioUrl String?
@@ -201,6 +257,8 @@ model CandidateProfile {
 
   // Связи
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar       MediaFile?   @relation("CandidateAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  resume       MediaFile?   @relation("CandidateResume", fields: [resumeId], references: [id], onDelete: SetNull)
   skills       CandidateSkill[]
   experiences  Experience[]
   educations   Education[]
@@ -219,12 +277,14 @@ model UniversityProfile {
   address   String
   phone     String?
   website   String?
+  logoId    String?  // ID логотипа в MediaFile
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   analytics UniversityAnalytics? // Аналитика университета
 
   // Связи
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logo       MediaFile? @relation("UniversityLogo", fields: [logoId], references: [id], onDelete: SetNull)
   students   Student[]
   educations Education[]
 
