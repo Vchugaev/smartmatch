@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -12,10 +13,14 @@ import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { EducationsModule } from './modules/educations/educations.module';
 import { PublicModule } from './modules/public/public.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { PrismaService } from './modules/prisma/prisma.service';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ThrottlerModule.forRoot([
       {
         ttl: parseInt(process.env.RATE_LIMIT_TTL || '60') * 1000,
@@ -32,8 +37,9 @@ import { PrismaService } from './modules/prisma/prisma.service';
     EducationsModule,
     PublicModule,
     AdminModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
-export class AppModule {}
+export class AppModule { }
