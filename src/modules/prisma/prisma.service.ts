@@ -70,4 +70,48 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       throw error;
     }
   }
+
+  // Метод для отладки пользователей
+  async debugUser(userId: string) {
+    try {
+      console.log('🔍 Debug: Checking user with ID:', userId);
+      
+      const user = await this.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          lastLogin: true
+        }
+      });
+      
+      if (user) {
+        console.log('✅ Debug: User found:', user);
+        return user;
+      } else {
+        console.log('❌ Debug: User not found');
+        
+        // Check total users
+        const userCount = await this.user.count();
+        console.log('📊 Debug: Total users in database:', userCount);
+        
+        if (userCount > 0) {
+          const recentUsers = await this.user.findMany({
+            take: 3,
+            select: { id: true, email: true, role: true },
+            orderBy: { createdAt: 'desc' }
+          });
+          console.log('👥 Debug: Recent users:', recentUsers);
+        }
+        
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Debug: Database error:', error);
+      throw error;
+    }
+  }
 }

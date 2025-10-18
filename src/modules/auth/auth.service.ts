@@ -126,15 +126,29 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
+    try {
+      console.log('AuthService: Validating user with ID:', userId);
+      
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isActive: true,
+        },
+      });
 
-    return user;
+      if (user) {
+        console.log('AuthService: User found:', { id: user.id, email: user.email, role: user.role, isActive: user.isActive });
+      } else {
+        console.log('AuthService: User not found for ID:', userId);
+      }
+
+      return user;
+    } catch (error) {
+      console.error('AuthService: Database error during user validation:', error);
+      throw error;
+    }
   }
 }
