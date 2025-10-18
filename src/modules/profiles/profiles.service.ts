@@ -370,45 +370,27 @@ export class ProfilesService {
             Object.entries(hrCreateData).filter(([_, value]) => value !== undefined)
           );
 
-          // Если нет обязательных полей для создания, создаем с пустыми значениями
-          if (!filteredCreateData.firstName || !filteredCreateData.lastName || !filteredCreateData.company || !filteredCreateData.position) {
-            profile = await this.prisma.hRProfile.create({
-              data: {
-                firstName: filteredCreateData.firstName || '',
-                lastName: filteredCreateData.lastName || '',
-                company: filteredCreateData.company || '',
-                position: filteredCreateData.position || '',
-                phone: filteredCreateData.phone,
-                avatarId: filteredCreateData.avatarId,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
+          // Создаем профиль с переданными данными или пустыми значениями
+          profile = await this.prisma.hRProfile.create({
+            data: {
+              firstName: filteredCreateData.firstName || '',
+              lastName: filteredCreateData.lastName || '',
+              company: filteredCreateData.company || '',
+              position: filteredCreateData.position || '',
+              phone: filteredCreateData.phone,
+              avatarId: filteredCreateData.avatarId,
+              userId,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
                 },
               },
-            });
-          } else {
-            profile = await this.prisma.hRProfile.create({
-              data: {
-                ...filteredCreateData,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-              },
-            });
-          }
+            },
+          });
         } else {
           // Профиль существует, обновляем его
           const hrUpdateData = {
@@ -470,60 +452,37 @@ export class ProfilesService {
             Object.entries(candidateCreateData).filter(([_, value]) => value !== undefined)
           );
 
-          // Если нет обязательных полей для создания, создаем с пустыми значениями
-          if (!filteredCreateData.firstName || !filteredCreateData.lastName) {
-            profile = await this.prisma.candidateProfile.create({
-              data: {
-                firstName: filteredCreateData.firstName || '',
-                lastName: filteredCreateData.lastName || '',
-                phone: filteredCreateData.phone,
-                avatarId: filteredCreateData.avatarId,
-                dateOfBirth: filteredCreateData.dateOfBirth,
-                location: filteredCreateData.location,
-                bio: filteredCreateData.bio,
-                resumeId: filteredCreateData.resumeId,
-                linkedinUrl: filteredCreateData.linkedinUrl,
-                githubUrl: filteredCreateData.githubUrl,
-                portfolioUrl: filteredCreateData.portfolioUrl,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-                skills: {
-                  include: {
-                    skill: true,
-                  },
+          // Создаем профиль с переданными данными или пустыми значениями
+          profile = await this.prisma.candidateProfile.create({
+            data: {
+              firstName: filteredCreateData.firstName || '',
+              lastName: filteredCreateData.lastName || '',
+              phone: filteredCreateData.phone,
+              avatarId: filteredCreateData.avatarId,
+              dateOfBirth: filteredCreateData.dateOfBirth,
+              location: filteredCreateData.location,
+              bio: filteredCreateData.bio,
+              resumeId: filteredCreateData.resumeId,
+              linkedinUrl: filteredCreateData.linkedinUrl,
+              githubUrl: filteredCreateData.githubUrl,
+              portfolioUrl: filteredCreateData.portfolioUrl,
+              userId,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
                 },
               },
-            });
-          } else {
-            profile = await this.prisma.candidateProfile.create({
-              data: {
-                ...filteredCreateData,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-                skills: {
-                  include: {
-                    skill: true,
-                  },
+              skills: {
+                include: {
+                  skill: true,
                 },
               },
-            });
-          }
+            },
+          });
         } else {
           // Профиль существует, обновляем его
           const candidateUpdateData = {
@@ -589,62 +548,35 @@ export class ProfilesService {
             Object.entries(universityCreateData).filter(([_, value]) => value !== undefined)
           );
 
-          // Если нет обязательных полей для создания, создаем с пустыми значениями
-          if (!filteredCreateData.name || !filteredCreateData.address) {
-            profile = await this.prisma.universityProfile.create({
-              data: {
-                name: filteredCreateData.name || '',
-                address: filteredCreateData.address || '',
-                phone: filteredCreateData.phone,
-                website: filteredCreateData.website,
-                logoId: filteredCreateData.logoId,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-                students: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    major: true,
-                  },
+          // Создаем профиль с переданными данными или пустыми значениями
+          profile = await this.prisma.universityProfile.create({
+            data: {
+              name: filteredCreateData.name || '',
+              address: filteredCreateData.address || '',
+              phone: filteredCreateData.phone,
+              website: filteredCreateData.website,
+              logoId: filteredCreateData.logoId,
+              userId,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
                 },
               },
-            });
-          } else {
-            profile = await this.prisma.universityProfile.create({
-              data: {
-                ...filteredCreateData,
-                userId,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-                students: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    major: true,
-                  },
+              students: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  major: true,
                 },
               },
-            });
-          }
+            },
+          });
         } else {
           // Профиль существует, обновляем его
           const universityUpdateData = {
