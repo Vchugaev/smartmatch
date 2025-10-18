@@ -9,11 +9,15 @@ export class JobsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createJobDto: CreateJobDto, hrId: string) {
-    const { skillIds, ...jobData } = createJobDto;
+    const { skillIds, deadline, ...jobData } = createJobDto;
+
+    // Convert deadline string to DateTime if provided
+    const deadlineDate = deadline ? new Date(deadline) : null;
 
     const job = await this.prisma.job.create({
       data: {
         ...jobData,
+        deadline: deadlineDate,
         hrId,
         moderationStatus: ModerationStatus.PENDING, // Новая вакансия попадает на модерацию
         status: JobStatus.DRAFT, // Сначала в черновик, пока не одобрена
@@ -128,11 +132,17 @@ export class JobsService {
       throw new ForbiddenException('У вас нет прав для редактирования этой вакансии');
     }
 
-    const { skillIds, ...jobData } = updateJobDto;
+    const { skillIds, deadline, ...jobData } = updateJobDto;
+
+    // Convert deadline string to DateTime if provided
+    const deadlineDate = deadline ? new Date(deadline) : undefined;
 
     const updatedJob = await this.prisma.job.update({
       where: { id },
-      data: jobData,
+      data: {
+        ...jobData,
+        ...(deadlineDate !== undefined && { deadline: deadlineDate }),
+      },
     });
 
     // Обновляем навыки, если они указаны

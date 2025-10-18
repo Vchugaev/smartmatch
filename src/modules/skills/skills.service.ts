@@ -7,6 +7,16 @@ export class SkillsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createSkillDto: CreateSkillDto) {
+    // Check if skill with this name already exists
+    const existingSkill = await this.prisma.skill.findUnique({
+      where: { name: createSkillDto.name },
+    });
+
+    if (existingSkill) {
+      return existingSkill;
+    }
+
+    // Create new skill if it doesn't exist
     return this.prisma.skill.create({
       data: createSkillDto,
     });
@@ -32,6 +42,20 @@ export class SkillsService {
 
   async update(id: string, updateSkillDto: UpdateSkillDto) {
     await this.findOne(id);
+
+    // If updating name, check if another skill with this name exists
+    if (updateSkillDto.name) {
+      const existingSkill = await this.prisma.skill.findFirst({
+        where: { 
+          name: updateSkillDto.name,
+          id: { not: id } // Exclude current skill
+        },
+      });
+
+      if (existingSkill) {
+        throw new Error('Навык с таким названием уже существует');
+      }
+    }
 
     return this.prisma.skill.update({
       where: { id },
