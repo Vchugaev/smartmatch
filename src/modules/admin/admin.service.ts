@@ -290,6 +290,19 @@ export class AdminService {
   }
 
   /**
+   * Получить общее количество пользователей
+   */
+  async getUsersCount(filters: any = {}) {
+    const { role, isActive } = filters;
+    
+    const where: any = {};
+    if (role) where.role = role;
+    if (isActive !== undefined) where.isActive = isActive;
+
+    return this.prisma.user.count({ where });
+  }
+
+  /**
    * Управление пользователями
    */
   async getUsers(filters: any) {

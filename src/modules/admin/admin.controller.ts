@@ -87,6 +87,14 @@ export class AdminController {
   }
 
   /**
+   * Получить общее количество пользователей
+   */
+  @Get('users/count')
+  async getUsersCount(@Query() filters: any) {
+    return this.adminService.getUsersCount(filters);
+  }
+
+  /**
    * Управление пользователями
    */
   @Get('users')
