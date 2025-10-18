@@ -70,6 +70,13 @@ Content-Type: multipart/form-data
 | POST | `/skills/candidate/:id` | Добавить навык кандидату | ✅ | CANDIDATE |
 | GET | `/skills/student/:id` | Навыки студента | ✅ | Любая |
 | POST | `/skills/student/:id` | Добавить навык студенту | ✅ | UNIVERSITY |
+| POST | `/universities/students` | Создать студента | ✅ | UNIVERSITY |
+| GET | `/universities/students` | Список студентов | ✅ | UNIVERSITY |
+| GET | `/universities/students/search` | Поиск студентов по навыкам | ✅ | UNIVERSITY |
+| GET | `/universities/students/stats` | Статистика студентов | ✅ | UNIVERSITY |
+| GET | `/universities/students/:id` | Детали студента | ✅ | UNIVERSITY |
+| PATCH | `/universities/students/:id` | Обновить студента | ✅ | UNIVERSITY |
+| DELETE | `/universities/students/:id` | Удалить студента | ✅ | UNIVERSITY |
 | POST | `/storage/upload` | Загрузить файл | ✅ | Любая |
 | GET | `/storage/download/:fileName` | Скачать файл | ❌ | - |
 | GET | `/storage/presigned/:fileName` | Presigned URL | ❌ | - |
@@ -710,6 +717,214 @@ curl -X POST http://localhost:3000/profiles/avatar/upload \
 ```bash
 curl -X GET http://localhost:3000/profiles/avatar/url \
   -H "Authorization: Bearer <token>"
+```
+
+## 🎓 Управление студентами (Университеты)
+
+### Создание студента
+```bash
+curl -X POST http://localhost:3000/universities/students \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Иван",
+    "lastName": "Петров",
+    "email": "ivan.petrov@university.edu",
+    "studentId": "2024001",
+    "yearOfStudy": 3,
+    "major": "Информатика",
+    "gpa": 4.2,
+    "phone": "+7-999-123-45-67"
+  }'
+```
+
+**Поля:**
+- `firstName` (string, обязательное) - Имя
+- `lastName` (string, обязательное) - Фамилия
+- `email` (string, обязательное) - Email студента
+- `studentId` (string, обязательное) - Студенческий билет
+- `yearOfStudy` (number, обязательное) - Курс (1-6)
+- `major` (string, обязательное) - Специальность
+- `gpa` (number, опциональное) - Средний балл (0-5)
+- `phone` (string, опциональное) - Телефон
+
+### Список студентов
+```bash
+curl -X GET http://localhost:3000/universities/students \
+  -H "Authorization: Bearer <token>"
+```
+
+**Ответ:**
+```json
+[
+  {
+    "id": "student_id",
+    "firstName": "Иван",
+    "lastName": "Петров",
+    "email": "ivan.petrov@university.edu",
+    "studentId": "2024001",
+    "yearOfStudy": 3,
+    "major": "Информатика",
+    "gpa": 4.2,
+    "phone": "+7-999-123-45-67",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "skills": [
+      {
+        "id": "skill_relation_id",
+        "level": 4,
+        "skill": {
+          "id": "skill_id",
+          "name": "JavaScript",
+          "category": "Programming"
+        }
+      }
+    ]
+  }
+]
+```
+
+### Поиск студентов по навыкам
+```bash
+curl -X GET "http://localhost:3000/universities/students/search?skillIds=skill1,skill2&minLevel=3" \
+  -H "Authorization: Bearer <token>"
+```
+
+**Параметры:**
+- `skillIds` (string) - ID навыков через запятую
+- `minLevel` (number, опциональное) - Минимальный уровень навыка
+- `maxLevel` (number, опциональное) - Максимальный уровень навыка
+
+### Статистика студентов
+```bash
+curl -X GET http://localhost:3000/universities/students/stats \
+  -H "Authorization: Bearer <token>"
+```
+
+**Ответ:**
+```json
+{
+  "totalStudents": 150,
+  "studentsWithSkills": 120,
+  "studentsWithoutSkills": 30,
+  "topSkills": [
+    {
+      "skillId": "skill_id",
+      "_count": {
+        "skillId": 45
+      }
+    }
+  ]
+}
+```
+
+### Детали студента
+```bash
+curl -X GET http://localhost:3000/universities/students/student_id \
+  -H "Authorization: Bearer <token>"
+```
+
+### Обновление студента
+```bash
+curl -X PATCH http://localhost:3000/universities/students/student_id \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Иван",
+    "gpa": 4.5,
+    "phone": "+7-999-987-65-43"
+  }'
+```
+
+### Удаление студента
+```bash
+curl -X DELETE http://localhost:3000/universities/students/student_id \
+  -H "Authorization: Bearer <token>"
+```
+
+**Ответ:**
+```json
+{
+  "message": "Студент успешно удален"
+}
+```
+
+### JavaScript примеры
+
+```javascript
+// Создание студента
+async function createStudent(studentData) {
+  const response = await fetch('/universities/students', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(studentData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message);
+  }
+  
+  return await response.json();
+}
+
+// Получение списка студентов
+async function getStudents() {
+  const response = await fetch('/universities/students', {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}` },
+    credentials: 'include'
+  });
+  
+  return await response.json();
+}
+
+// Поиск студентов по навыкам
+async function searchStudentsBySkills(skillIds, minLevel = null) {
+  const params = new URLSearchParams();
+  params.append('skillIds', skillIds.join(','));
+  
+  if (minLevel !== null) {
+    params.append('minLevel', minLevel.toString());
+  }
+  
+  const response = await fetch(`/universities/students/search?${params.toString()}`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}` },
+    credentials: 'include'
+  });
+  
+  return await response.json();
+}
+
+// Обновление студента
+async function updateStudent(studentId, updateData) {
+  const response = await fetch(`/universities/students/${studentId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(updateData)
+  });
+  
+  return await response.json();
+}
+
+// Удаление студента
+async function deleteStudent(studentId) {
+  const response = await fetch(`/universities/students/${studentId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+    credentials: 'include'
+  });
+  
+  return await response.json();
+}
 ```
 
 ## ❌ Обработка ошибок
