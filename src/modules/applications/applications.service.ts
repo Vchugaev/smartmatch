@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException } 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicationDto, UpdateApplicationDto, ApplicationQueryDto } from '../../dto/application.dto';
 import { ApplicationStatus } from '@prisma/client';
+import { APPLICATION_INCLUDE_FULL } from '../../shared/constants/prisma-fragments';
 
 @Injectable()
 export class ApplicationsService {
@@ -98,61 +99,11 @@ export class ApplicationsService {
   async findOne(id: string) {
     const application = await this.prisma.application.findUnique({
       where: { id },
-      include: {
-        job: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            location: true,
-            type: true,
-            hr: {
-              select: {
-                company: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-        candidate: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            phone: true,
-            bio: true,
-            resume: {
-              select: {
-                id: true,
-                url: true,
-                originalName: true,
-                mimeType: true,
-                size: true,
-              }
-            },
-            linkedinUrl: true,
-            githubUrl: true,
-            portfolioUrl: true,
-            user: {
-              select: {
-                email: true,
-              },
-            },
-          },
-        },
-        hr: {
-          select: {
-            firstName: true,
-            lastName: true,
-            company: true,
-          },
-        },
-      },
+      include: APPLICATION_INCLUDE_FULL,
     });
 
     if (!application) {
-      throw new NotFoundException('Отклик не найден');
+      throw new NotFoundException('Application not found');
     }
 
     return application;

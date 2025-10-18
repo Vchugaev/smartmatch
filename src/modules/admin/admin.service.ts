@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ModerationActionDto } from './dto/moderation-action.dto';
 import { AdminStatsDto } from './dto/admin-stats.dto';
 import { ModerationStatus } from '@prisma/client';
+import { buildDateFilter } from '../../shared/utils/data.utils';
 
 @Injectable()
 export class AdminService {
@@ -133,7 +134,7 @@ export class AdminService {
   async getAdminOverview(filters: AdminStatsDto) {
     const { startDate, endDate } = filters;
     
-    const dateFilter = this.buildDateFilter(startDate, endDate);
+    const dateFilter = buildDateFilter(startDate, endDate);
 
     const [
       totalUsers,
@@ -188,7 +189,7 @@ export class AdminService {
    */
   async getCompaniesStats(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 50 } = filters;
-    const dateFilter = this.buildDateFilter(startDate, endDate);
+    const dateFilter = buildDateFilter(startDate, endDate);
 
     const companies = await this.prisma.hRProfile.findMany({
       select: {
@@ -223,7 +224,7 @@ export class AdminService {
    */
   async getUniversitiesStats(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 50 } = filters;
-    const dateFilter = this.buildDateFilter(startDate, endDate);
+    const dateFilter = buildDateFilter(startDate, endDate);
 
     const universities = await this.prisma.universityProfile.findMany({
       select: {
@@ -371,18 +372,4 @@ export class AdminService {
     return Promise.all(updates);
   }
 
-  /**
-   * Построить фильтр по датам
-   */
-  private buildDateFilter(startDate?: string, endDate?: string) {
-    const filter: any = {};
-    
-    if (startDate || endDate) {
-      filter.createdAt = {};
-      if (startDate) filter.createdAt.gte = new Date(startDate);
-      if (endDate) filter.createdAt.lte = new Date(endDate);
-    }
-
-    return filter;
-  }
 }

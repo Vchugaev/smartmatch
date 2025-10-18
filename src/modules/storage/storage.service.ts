@@ -9,6 +9,11 @@ export class StorageService {
     private readonly bucketName = 'smartmatch';
 
     constructor(private configService: ConfigService) {
+        // Используем локальный MinIO или настраиваем подключение к внешнему
+        const endpoint = this.configService.get('MINIO_ENDPOINT', 'localhost');
+        const port = parseInt(this.configService.get('MINIO_PORT', '9000'));
+        const useSSL = this.configService.get('MINIO_USE_SSL', 'false') === 'true';
+        
         this.minioClient = new Minio.Client({
             endPoint: 'storage.vchugaev.ru',
             port: 443,
@@ -48,14 +53,13 @@ export class StorageService {
                 }
             );
 
-            // Генерируем presigned URL для доступа к файлу
-            const presignedUrl = await this.minioClient.presignedGetObject(this.bucketName, fileName, 7 * 24 * 3600); // 7 дней
+            const presignedUrl = await this.minioClient.presignedGetObject(this.bucketName, fileName, 7 * 24 * 3600);
 
             this.logger.log(`File uploaded successfully: ${fileName}`);
             return { fileName, presignedUrl };
         } catch (error) {
             this.logger.error('Error uploading file:', error);
-            throw new Error('Failed to upload file');
+            throw new Error(`Failed to upload file: ${error.message}`);
         }
     }
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto, UpdateJobDto, JobQueryDto } from '../../dto/job.dto';
 import { JobStatus } from '@prisma/client';
+import { JOB_INCLUDE_BASIC } from '../../shared/constants/prisma-fragments';
 
 @Injectable()
 export class JobsService {
@@ -55,18 +56,7 @@ export class JobsService {
     const [jobs, total] = await Promise.all([
       this.prisma.job.findMany({
         where,
-        include: {
-          hr: {
-            select: {
-              company: true,
-            },
-          },
-          skills: {
-            include: {
-              skill: true,
-            },
-          },
-        },
+        include: JOB_INCLUDE_BASIC,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -87,18 +77,7 @@ export class JobsService {
     const job = await this.prisma.job.findUnique({
       where: { id },
       include: {
-        hr: {
-          select: {
-            company: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        skills: {
-          include: {
-            skill: true,
-          },
-        },
+        ...JOB_INCLUDE_BASIC,
         applications: {
           include: {
             candidate: {
@@ -118,7 +97,7 @@ export class JobsService {
     });
 
     if (!job) {
-      throw new NotFoundException('Вакансия не найдена');
+      throw new NotFoundException('Job not found');
     }
 
     return job;
@@ -176,11 +155,7 @@ export class JobsService {
     return this.prisma.job.findMany({
       where: { hrId },
       include: {
-        skills: {
-          include: {
-            skill: true,
-          },
-        },
+        ...JOB_INCLUDE_BASIC,
         applications: {
           include: {
             candidate: {

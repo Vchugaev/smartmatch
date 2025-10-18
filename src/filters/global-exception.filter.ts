@@ -11,12 +11,11 @@ import { ValidationError } from 'class-validator';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private translateValidationError(constraint: string, field: string, value: any): string {
+  private translateValidationError(constraint: string, field: string): string {
     const translations: Record<string, string> = {
       'isString': `${field} должно быть строкой`,
       'isNotEmpty': `${field} не может быть пустым`,
       'isEmail': `${field} должно быть корректным email адресом`,
-      'isOptional': `${field} является необязательным полем`,
       'isEnum': `${field} должно быть одним из допустимых значений`,
       'isNumber': `${field} должно быть числом`,
       'isBoolean': `${field} должно быть булевым значением`,
@@ -44,20 +43,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     errors.forEach((error) => {
       if (error.constraints) {
-        // Берем первое ограничение и переводим его
         const firstConstraint = Object.keys(error.constraints)[0];
-        const translatedMessage = this.translateValidationError(
-          firstConstraint,
-          error.property,
-          error.value
-        );
-        result[error.property] = translatedMessage;
+        result[error.property] = this.translateValidationError(firstConstraint, error.property);
       }
 
-      // Обработка вложенных ошибок
       if (error.children && error.children.length > 0) {
-        const nestedErrors = this.formatValidationErrors(error.children);
-        Object.assign(result, nestedErrors);
+        Object.assign(result, this.formatValidationErrors(error.children));
       }
     });
 
