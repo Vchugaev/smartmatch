@@ -1,15 +1,32 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AutoProfileService } from '../profiles/auto-profile.service';
 import { CreateJobDto, UpdateJobDto, JobQueryDto } from '../../dto/job.dto';
-import { JobStatus, ModerationStatus } from '@prisma/client';
+import { JobStatus, ModerationStatus, UserRole } from '@prisma/client';
 import { JOB_INCLUDE_BASIC } from '../../shared/constants/prisma-fragments';
 
 @Injectable()
 export class JobsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private autoProfileService: AutoProfileService
+  ) {}
 
-  async create(createJobDto: CreateJobDto, hrId: string) {
+  async create(createJobDto: CreateJobDto, userId: string) {
     const { skillIds, deadline, ...jobData } = createJobDto;
+
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user || user.role !== 'HR') {
+      throw new ForbiddenException('Только пользователи с ролью HR могут создавать вакансии');
+    }
+
+    // Автоматически создаем HR профиль если не существует
+    const hrProfileId = await this.autoProfileService.getProfileId(userId, user.role as UserRole);
 
     // Convert deadline string to DateTime if provided
     const deadlineDate = deadline ? new Date(deadline) : null;
@@ -18,7 +35,7 @@ export class JobsService {
       data: {
         ...jobData,
         deadline: deadlineDate,
-        hrId,
+        hrId: hrProfileId,
         moderationStatus: ModerationStatus.PENDING, // Новая вакансия попадает на модерацию
         status: JobStatus.DRAFT, // Сначала в черновик, пока не одобрена
         publishedAt: null, // Будет установлена после одобрения
@@ -39,7 +56,7 @@ export class JobsService {
     // Создаем запись в аудите
     await this.prisma.auditLog.create({
       data: {
-        userId: hrId,
+        userId: userId,
         action: 'JOB_CREATED',
         entityType: 'Job',
         entityId: job.id,
@@ -125,10 +142,23 @@ export class JobsService {
     return job;
   }
 
-  async update(id: string, updateJobDto: UpdateJobDto, hrId: string) {
+  async update(id: string, updateJobDto: UpdateJobDto, userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user || user.role !== 'HR') {
+      throw new ForbiddenException('Только пользователи с ролью HR могут редактировать вакансии');
+    }
+
+    // Автоматически создаем HR профиль если не существует
+    const hrProfileId = await this.autoProfileService.getProfileId(userId, user.role as UserRole);
+
     const job = await this.findOne(id);
 
-    if (job.hrId !== hrId) {
+    if (job.hrId !== hrProfileId) {
       throw new ForbiddenException('У вас нет прав для редактирования этой вакансии');
     }
 
@@ -165,10 +195,23 @@ export class JobsService {
     return this.findOne(id);
   }
 
-  async remove(id: string, hrId: string) {
+  async remove(id: string, userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user || user.role !== 'HR') {
+      throw new ForbiddenException('Только пользователи с ролью HR могут удалять вакансии');
+    }
+
+    // Автоматически создаем HR профиль если не существует
+    const hrProfileId = await this.autoProfileService.getProfileId(userId, user.role as UserRole);
+
     const job = await this.findOne(id);
 
-    if (job.hrId !== hrId) {
+    if (job.hrId !== hrProfileId) {
       throw new ForbiddenException('У вас нет прав для удаления этой вакансии');
     }
 
@@ -179,9 +222,22 @@ export class JobsService {
     return { message: 'Вакансия успешно удалена' };
   }
 
-  async findByHR(hrId: string) {
+  async findByHR(userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user || user.role !== 'HR') {
+      throw new ForbiddenException('Только пользователи с ролью HR могут просматривать свои вакансии');
+    }
+
+    // Автоматически создаем HR профиль если не существует
+    const hrProfileId = await this.autoProfileService.getProfileId(userId, user.role as UserRole);
+
     return this.prisma.job.findMany({
-      where: { hrId },
+      where: { hrId: hrProfileId },
       include: {
         ...JOB_INCLUDE_BASIC,
         applications: {

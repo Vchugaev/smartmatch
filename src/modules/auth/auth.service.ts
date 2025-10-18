@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, InternalServerErr
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { AutoProfileService } from '../profiles/auto-profile.service';
 import { RegisterDto, LoginDto, AuthResponseDto, UserRole } from '../../dto/auth.dto';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private autoProfileService: AutoProfileService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -33,6 +35,15 @@ export class AuthService {
           role,
         },
       });
+
+      // Автоматически создаем профиль для пользователя
+      try {
+        await this.autoProfileService.ensureProfileExists(user.id, role as any);
+        console.log(`Profile created automatically for user: ${user.id}, role: ${role}`);
+      } catch (profileError) {
+        console.warn(`Failed to create profile for user ${user.id}:`, profileError.message);
+        // Не прерываем регистрацию, если не удалось создать профиль
+      }
 
       const payload = { 
         sub: user.id, 
