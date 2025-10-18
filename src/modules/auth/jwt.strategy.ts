@@ -9,14 +9,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
+        // Сначала пробуем извлечь из заголовка Authorization (приоритет для cross-origin)
         ExtractJwt.fromAuthHeaderAsBearerToken(),
+        // Затем из куки
         (request: Request) => {
-          // Проверяем наличие токена в куки
           const token = request?.cookies?.access_token;
           console.log('JWT Strategy: Extracting token from cookies:', token ? 'Token found' : 'No token');
           console.log('JWT Strategy: Available cookies:', Object.keys(request?.cookies || {}));
+          console.log('JWT Strategy: Authorization header:', request?.headers?.authorization);
           return token || null;
         },
+        // Также пробуем из query параметра (для отладки)
+        ExtractJwt.fromUrlQueryParameter('token'),
       ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET || 'fallback-secret-key',

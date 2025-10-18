@@ -26,12 +26,13 @@ async function bootstrap() {
   // Cookie parser
   app.use(cookieParser());
   
-  // CORS - разрешаем все домены
+  // CORS - временно разрешаем все домены для отладки
   app.enableCors({
     origin: true, // Разрешаем все домены
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
   });
   
   // Валидация

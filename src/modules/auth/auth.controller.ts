@@ -17,10 +17,11 @@ export class AuthController {
     // Устанавливаем HTTP-only куку с JWT токеном
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      secure: process.env.NODE_ENV === 'production', // true для production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // none для cross-origin в production
       maxAge: 60 * 60 * 1000, // 1 час
       path: '/',
+      domain: undefined, // Не устанавливаем домен
     });
 
     return result;
@@ -34,10 +35,11 @@ export class AuthController {
     // Устанавливаем HTTP-only куку с JWT токеном
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      secure: process.env.NODE_ENV === 'production', // true для production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // none для cross-origin в production
       maxAge: 60 * 60 * 1000, // 1 час
       path: '/',
+      domain: undefined, // Не устанавливаем домен
     });
 
     return result;
@@ -58,6 +60,31 @@ export class AuthController {
     return {
       user: req.user,
       message: 'Аутентификация работает корректно'
+    };
+  }
+
+  @Get('token')
+  @UseGuards(JwtAuthGuard)
+  async getToken(@Request() req) {
+    // Возвращаем токен для использования в заголовке Authorization
+    const token = req.headers.authorization?.replace('Bearer ', '') || 
+                  req.cookies?.access_token;
+    
+    return {
+      token,
+      user: req.user,
+      message: 'Используйте этот токен в заголовке Authorization: Bearer <token>'
+    };
+  }
+
+  @Get('cors-test')
+  async corsTest(@Request() req) {
+    return {
+      message: 'CORS работает корректно',
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent'],
+      cookies: Object.keys(req.cookies || {}),
+      timestamp: new Date().toISOString()
     };
   }
 }
