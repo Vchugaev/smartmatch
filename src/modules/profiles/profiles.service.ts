@@ -349,138 +349,342 @@ export class ProfilesService {
     // Определяем тип профиля и обновляем соответствующие поля
     switch (user.role) {
       case 'HR': {
-        const profile = await this.prisma.hRProfile.findUnique({
+        let profile = await this.prisma.hRProfile.findUnique({
           where: { userId }
         });
 
+        // Если профиль не существует, создаем его
         if (!profile) {
-          throw new NotFoundException('HR профиль не найден');
-        }
+          // Фильтруем только поля, относящиеся к HR профилю
+          const hrCreateData = {
+            firstName: updateProfileDto.firstName,
+            lastName: updateProfileDto.lastName,
+            phone: updateProfileDto.phone,
+            avatarId: updateProfileDto.avatarId,
+            company: updateProfileDto.company,
+            position: updateProfileDto.position,
+          };
 
-        // Фильтруем только поля, относящиеся к HR профилю
-        const hrUpdateData = {
-          firstName: updateProfileDto.firstName,
-          lastName: updateProfileDto.lastName,
-          phone: updateProfileDto.phone,
-          avatarId: updateProfileDto.avatarId,
-          company: updateProfileDto.company,
-          position: updateProfileDto.position,
-        };
+          // Удаляем undefined поля
+          const filteredCreateData = Object.fromEntries(
+            Object.entries(hrCreateData).filter(([_, value]) => value !== undefined)
+          );
 
-        // Удаляем undefined поля
-        const filteredData = Object.fromEntries(
-          Object.entries(hrUpdateData).filter(([_, value]) => value !== undefined)
-        );
+          // Если нет обязательных полей для создания, создаем с пустыми значениями
+          if (!filteredCreateData.firstName || !filteredCreateData.lastName || !filteredCreateData.company || !filteredCreateData.position) {
+            profile = await this.prisma.hRProfile.create({
+              data: {
+                firstName: filteredCreateData.firstName || '',
+                lastName: filteredCreateData.lastName || '',
+                company: filteredCreateData.company || '',
+                position: filteredCreateData.position || '',
+                phone: filteredCreateData.phone,
+                avatarId: filteredCreateData.avatarId,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+              },
+            });
+          } else {
+            profile = await this.prisma.hRProfile.create({
+              data: {
+                ...filteredCreateData,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          // Профиль существует, обновляем его
+          const hrUpdateData = {
+            firstName: updateProfileDto.firstName,
+            lastName: updateProfileDto.lastName,
+            phone: updateProfileDto.phone,
+            avatarId: updateProfileDto.avatarId,
+            company: updateProfileDto.company,
+            position: updateProfileDto.position,
+          };
 
-        return this.prisma.hRProfile.update({
-          where: { userId },
-          data: filteredData,
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
+          // Удаляем undefined поля
+          const filteredData = Object.fromEntries(
+            Object.entries(hrUpdateData).filter(([_, value]) => value !== undefined)
+          );
+
+          profile = await this.prisma.hRProfile.update({
+            where: { userId },
+            data: filteredData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
+                },
               },
             },
-          },
-        });
+          });
+        }
+
+        return profile;
       }
 
       case 'CANDIDATE': {
-        const profile = await this.prisma.candidateProfile.findUnique({
+        let profile = await this.prisma.candidateProfile.findUnique({
           where: { userId }
         });
 
+        // Если профиль не существует, создаем его
         if (!profile) {
-          throw new NotFoundException('Профиль кандидата не найден');
+          // Фильтруем только поля, относящиеся к кандидату
+          const candidateCreateData = {
+            firstName: updateProfileDto.firstName,
+            lastName: updateProfileDto.lastName,
+            phone: updateProfileDto.phone,
+            avatarId: updateProfileDto.avatarId,
+            dateOfBirth: updateProfileDto.dateOfBirth,
+            location: updateProfileDto.location,
+            bio: updateProfileDto.bio,
+            resumeId: updateProfileDto.resumeId,
+            linkedinUrl: updateProfileDto.linkedinUrl,
+            githubUrl: updateProfileDto.githubUrl,
+            portfolioUrl: updateProfileDto.portfolioUrl,
+          };
+
+          // Удаляем undefined поля
+          const filteredCreateData = Object.fromEntries(
+            Object.entries(candidateCreateData).filter(([_, value]) => value !== undefined)
+          );
+
+          // Если нет обязательных полей для создания, создаем с пустыми значениями
+          if (!filteredCreateData.firstName || !filteredCreateData.lastName) {
+            profile = await this.prisma.candidateProfile.create({
+              data: {
+                firstName: filteredCreateData.firstName || '',
+                lastName: filteredCreateData.lastName || '',
+                phone: filteredCreateData.phone,
+                avatarId: filteredCreateData.avatarId,
+                dateOfBirth: filteredCreateData.dateOfBirth,
+                location: filteredCreateData.location,
+                bio: filteredCreateData.bio,
+                resumeId: filteredCreateData.resumeId,
+                linkedinUrl: filteredCreateData.linkedinUrl,
+                githubUrl: filteredCreateData.githubUrl,
+                portfolioUrl: filteredCreateData.portfolioUrl,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+                skills: {
+                  include: {
+                    skill: true,
+                  },
+                },
+              },
+            });
+          } else {
+            profile = await this.prisma.candidateProfile.create({
+              data: {
+                ...filteredCreateData,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+                skills: {
+                  include: {
+                    skill: true,
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          // Профиль существует, обновляем его
+          const candidateUpdateData = {
+            firstName: updateProfileDto.firstName,
+            lastName: updateProfileDto.lastName,
+            phone: updateProfileDto.phone,
+            avatarId: updateProfileDto.avatarId,
+            dateOfBirth: updateProfileDto.dateOfBirth,
+            location: updateProfileDto.location,
+            bio: updateProfileDto.bio,
+            resumeId: updateProfileDto.resumeId,
+            linkedinUrl: updateProfileDto.linkedinUrl,
+            githubUrl: updateProfileDto.githubUrl,
+            portfolioUrl: updateProfileDto.portfolioUrl,
+          };
+
+          // Удаляем undefined поля
+          const filteredData = Object.fromEntries(
+            Object.entries(candidateUpdateData).filter(([_, value]) => value !== undefined)
+          );
+
+          profile = await this.prisma.candidateProfile.update({
+            where: { userId },
+            data: filteredData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              skills: {
+                include: {
+                  skill: true,
+                },
+              },
+            },
+          });
         }
 
-        // Фильтруем только поля, относящиеся к кандидату
-        const candidateUpdateData = {
-          firstName: updateProfileDto.firstName,
-          lastName: updateProfileDto.lastName,
-          phone: updateProfileDto.phone,
-          avatarId: updateProfileDto.avatarId,
-          dateOfBirth: updateProfileDto.dateOfBirth,
-          location: updateProfileDto.location,
-          bio: updateProfileDto.bio,
-          resumeId: updateProfileDto.resumeId,
-          linkedinUrl: updateProfileDto.linkedinUrl,
-          githubUrl: updateProfileDto.githubUrl,
-          portfolioUrl: updateProfileDto.portfolioUrl,
-        };
-
-        // Удаляем undefined поля
-        const filteredData = Object.fromEntries(
-          Object.entries(candidateUpdateData).filter(([_, value]) => value !== undefined)
-        );
-
-        return this.prisma.candidateProfile.update({
-          where: { userId },
-          data: filteredData,
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-              },
-            },
-            skills: {
-              include: {
-                skill: true,
-              },
-            },
-          },
-        });
+        return profile;
       }
 
       case 'UNIVERSITY': {
-        const profile = await this.prisma.universityProfile.findUnique({
+        let profile = await this.prisma.universityProfile.findUnique({
           where: { userId }
         });
 
+        // Если профиль не существует, создаем его
         if (!profile) {
-          throw new NotFoundException('Профиль университета не найден');
+          // Фильтруем только поля, относящиеся к университету
+          const universityCreateData = {
+            name: updateProfileDto.name,
+            address: updateProfileDto.address,
+            phone: updateProfileDto.phone,
+            website: updateProfileDto.website,
+            logoId: updateProfileDto.logoId,
+          };
+
+          // Удаляем undefined поля
+          const filteredCreateData = Object.fromEntries(
+            Object.entries(universityCreateData).filter(([_, value]) => value !== undefined)
+          );
+
+          // Если нет обязательных полей для создания, создаем с пустыми значениями
+          if (!filteredCreateData.name || !filteredCreateData.address) {
+            profile = await this.prisma.universityProfile.create({
+              data: {
+                name: filteredCreateData.name || '',
+                address: filteredCreateData.address || '',
+                phone: filteredCreateData.phone,
+                website: filteredCreateData.website,
+                logoId: filteredCreateData.logoId,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+                students: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    major: true,
+                  },
+                },
+              },
+            });
+          } else {
+            profile = await this.prisma.universityProfile.create({
+              data: {
+                ...filteredCreateData,
+                userId,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+                students: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    major: true,
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          // Профиль существует, обновляем его
+          const universityUpdateData = {
+            name: updateProfileDto.name,
+            address: updateProfileDto.address,
+            phone: updateProfileDto.phone,
+            website: updateProfileDto.website,
+            logoId: updateProfileDto.logoId,
+          };
+
+          // Удаляем undefined поля
+          const filteredData = Object.fromEntries(
+            Object.entries(universityUpdateData).filter(([_, value]) => value !== undefined)
+          );
+
+          profile = await this.prisma.universityProfile.update({
+            where: { userId },
+            data: filteredData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              students: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  major: true,
+                },
+              },
+            },
+          });
         }
 
-        // Фильтруем только поля, относящиеся к университету
-        const universityUpdateData = {
-          name: updateProfileDto.name,
-          address: updateProfileDto.address,
-          phone: updateProfileDto.phone,
-          website: updateProfileDto.website,
-          logoId: updateProfileDto.logoId,
-        };
-
-        // Удаляем undefined поля
-        const filteredData = Object.fromEntries(
-          Object.entries(universityUpdateData).filter(([_, value]) => value !== undefined)
-        );
-
-        return this.prisma.universityProfile.update({
-          where: { userId },
-          data: filteredData,
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-              },
-            },
-            students: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                major: true,
-              },
-            },
-          },
-        });
+        return profile;
       }
 
       default:
