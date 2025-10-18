@@ -7,15 +7,11 @@ export enum UserRole {
 }
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'Введите корректный email адрес' })
+  @IsString({ message: 'Email должен быть строкой' })
   email: string;
 
   @IsString({ message: 'Пароль должен быть строкой' })
-  @MinLength(8, { message: 'Пароль должен содержать минимум 8 символов' })
-  @MaxLength(128, { message: 'Пароль не должен превышать 128 символов' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
-    message: 'Пароль должен содержать минимум одну заглавную букву, одну строчную букву и одну цифру' 
-  })
+  @MinLength(6, { message: 'Пароль должен содержать минимум 6 символа' })
   password: string;
 
   @IsEnum(UserRole, { message: 'Роль должна быть одной из: HR, CANDIDATE, UNIVERSITY' })

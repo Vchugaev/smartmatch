@@ -24,8 +24,8 @@ POST /auth/register
 
 | Поле | Тип | Обязательное | Описание | Валидация |
 |------|-----|---------------|----------|-----------|
-| `email` | string | ✅ | Email адрес | Валидный email формат |
-| `password` | string | ✅ | Пароль | Минимум 8 символов, 1 заглавная, 1 строчная, 1 цифра |
+| `email` | string | ✅ | Email адрес | Любая строка (упрощено для демо) |
+| `password` | string | ✅ | Пароль | Минимум 3 символа (упрощено для демо) |
 | `role` | enum | ✅ | Роль пользователя | `HR`, `CANDIDATE`, `UNIVERSITY` |
 
 ### Примеры запросов
@@ -36,7 +36,7 @@ curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "candidate@example.com",
-    "password": "Password123",
+    "password": "123",
     "role": "CANDIDATE"
   }'
 ```
