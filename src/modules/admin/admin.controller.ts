@@ -125,4 +125,44 @@ export class AdminController {
   async updateSystemSettings(@Body() settings: any) {
     return this.adminService.updateSystemSettings(settings);
   }
+
+  /**
+   * Назначить роль пользователю
+   */
+  @Patch('users/:id/role')
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body() roleData: { role: UserRole },
+  ) {
+    return this.adminService.updateUserRole(id, roleData.role);
+  }
+
+  /**
+   * Получить статистику модерации
+   */
+  @Get('moderation/stats')
+  async getModerationStats() {
+    return this.adminService.getModerationStats();
+  }
+
+  /**
+   * Получить историю модерации
+   */
+  @Get('moderation/history')
+  async getModerationHistory(@Query() filters: any) {
+    return this.adminService.getModerationHistory(filters);
+  }
+
+  /**
+   * Массовые действия с вакансиями
+   */
+  @Patch('moderation/bulk-approve')
+  async bulkApproveJobs(@Body() data: { jobIds: string[] }) {
+    return this.adminService.bulkApproveJobs(data.jobIds);
+  }
+
+  @Patch('moderation/bulk-reject')
+  async bulkRejectJobs(@Body() data: { jobIds: string[] }) {
+    return this.adminService.bulkRejectJobs(data.jobIds);
+  }
 }

@@ -372,4 +372,179 @@ export class AdminService {
     return Promise.all(updates);
   }
 
+  /**
+   * Обновить роль пользователя
+   */
+  async updateUserRole(userId: string, role: any) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('Пользователь не найден');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+  }
+
+  /**
+   * Получить статистику модерации
+   */
+  async getModerationStats() {
+    const [
+      totalPending,
+      totalApproved,
+      totalRejected,
+      totalReturned,
+      todayPending,
+      thisWeekPending,
+    ] = await Promise.all([
+      this.prisma.job.count({
+        where: { moderationStatus: ModerationStatus.PENDING },
+      }),
+      this.prisma.job.count({
+        where: { moderationStatus: ModerationStatus.APPROVED },
+      }),
+      this.prisma.job.count({
+        where: { moderationStatus: ModerationStatus.REJECTED },
+      }),
+      this.prisma.job.count({
+        where: { moderationStatus: ModerationStatus.DRAFT },
+      }),
+      this.prisma.job.count({
+        where: {
+          moderationStatus: ModerationStatus.PENDING,
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+      }),
+      this.prisma.job.count({
+        where: {
+          moderationStatus: ModerationStatus.PENDING,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total: {
+        pending: totalPending,
+        approved: totalApproved,
+        rejected: totalRejected,
+        returned: totalReturned,
+      },
+      today: {
+        pending: todayPending,
+      },
+      thisWeek: {
+        pending: thisWeekPending,
+      },
+    };
+  }
+
+  /**
+   * Получить историю модерации
+   */
+  async getModerationHistory(filters: any) {
+    const { page = 1, limit = 50, moderatorId, status } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      moderationStatus: {
+        in: [ModerationStatus.APPROVED, ModerationStatus.REJECTED, ModerationStatus.DRAFT],
+      },
+    };
+
+    if (moderatorId) {
+      where.moderatorId = moderatorId;
+    }
+
+    if (status) {
+      where.moderationStatus = status;
+    }
+
+    const [jobs, total] = await Promise.all([
+      this.prisma.job.findMany({
+        where,
+        include: {
+          hr: {
+            select: {
+              company: true,
+              user: {
+                select: {
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          moderatedAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.job.count({ where }),
+    ]);
+
+    return {
+      jobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Массовое одобрение вакансий
+   */
+  async bulkApproveJobs(jobIds: string[]) {
+    const result = await this.prisma.job.updateMany({
+      where: {
+        id: { in: jobIds },
+        moderationStatus: ModerationStatus.PENDING,
+      },
+      data: {
+        moderationStatus: ModerationStatus.APPROVED,
+        status: 'ACTIVE',
+        publishedAt: new Date(),
+        moderatedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `Одобрено ${result.count} вакансий`,
+      count: result.count,
+    };
+  }
+
+  /**
+   * Массовое отклонение вакансий
+   */
+  async bulkRejectJobs(jobIds: string[]) {
+    const result = await this.prisma.job.updateMany({
+      where: {
+        id: { in: jobIds },
+        moderationStatus: ModerationStatus.PENDING,
+      },
+      data: {
+        moderationStatus: ModerationStatus.REJECTED,
+        status: 'CLOSED',
+        moderatedAt: new Date(),
+      },
+    });
+
+    return {
+      message: `Отклонено ${result.count} вакансий`,
+      count: result.count,
+    };
+  }
+
 }

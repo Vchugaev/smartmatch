@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto, UpdateJobDto, JobQueryDto } from '../../dto/job.dto';
-import { JobStatus } from '@prisma/client';
+import { JobStatus, ModerationStatus } from '@prisma/client';
 import { JOB_INCLUDE_BASIC } from '../../shared/constants/prisma-fragments';
 
 @Injectable()
@@ -15,7 +15,9 @@ export class JobsService {
       data: {
         ...jobData,
         hrId,
-        publishedAt: new Date(),
+        moderationStatus: ModerationStatus.PENDING, // Новая вакансия попадает на модерацию
+        status: JobStatus.DRAFT, // Сначала в черновик, пока не одобрена
+        publishedAt: null, // Будет установлена после одобрения
       },
     });
 
@@ -30,6 +32,21 @@ export class JobsService {
       });
     }
 
+    // Создаем запись в аудите
+    await this.prisma.auditLog.create({
+      data: {
+        userId: hrId,
+        action: 'JOB_CREATED',
+        entityType: 'Job',
+        entityId: job.id,
+        newValues: {
+          title: job.title,
+          status: JobStatus.DRAFT,
+          moderationStatus: ModerationStatus.PENDING,
+        },
+      },
+    });
+
     return this.findOne(job.id);
   }
 
@@ -39,6 +56,7 @@ export class JobsService {
 
     const where: any = {
       status: JobStatus.ACTIVE,
+      moderationStatus: ModerationStatus.APPROVED, // Показываем только одобренные вакансии
     };
 
     if (search) {
