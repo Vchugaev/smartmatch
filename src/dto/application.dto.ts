@@ -1,5 +1,4 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { ApplicationStatus } from '@prisma/client';
 
 export class CreateApplicationDto {
   @IsString()
@@ -16,8 +15,8 @@ export class CreateApplicationDto {
 
 export class UpdateApplicationDto {
   @IsOptional()
-  @IsEnum(ApplicationStatus)
-  status?: ApplicationStatus;
+  @IsEnum(['PENDING', 'REVIEWED', 'ACCEPTED', 'REJECTED', 'INTERVIEW_SCHEDULED', 'HIRED', 'WITHDRAWN'])
+  status?: string;
 
   @IsOptional()
   @IsString()
@@ -26,8 +25,8 @@ export class UpdateApplicationDto {
 
 export class ApplicationQueryDto {
   @IsOptional()
-  @IsEnum(ApplicationStatus)
-  status?: ApplicationStatus;
+  @IsEnum(['PENDING', 'REVIEWED', 'ACCEPTED', 'REJECTED', 'INTERVIEW_SCHEDULED', 'HIRED', 'WITHDRAWN'])
+  status?: string;
 
   @IsOptional()
   @IsString()

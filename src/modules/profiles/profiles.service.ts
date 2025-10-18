@@ -457,19 +457,19 @@ export class ProfilesService {
           // Создаем профиль с переданными данными или пустыми значениями
           profile = await this.prisma.candidateProfile.create({
             data: {
-              firstName: filteredCreateData.firstName || '',
-              lastName: filteredCreateData.lastName || '',
-              phone: filteredCreateData.phone,
-              avatarId: filteredCreateData.avatarId,
-              dateOfBirth: filteredCreateData.dateOfBirth,
-              location: filteredCreateData.location,
-              bio: filteredCreateData.bio,
-              resumeId: filteredCreateData.resumeId,
-              linkedinUrl: filteredCreateData.linkedinUrl,
-              githubUrl: filteredCreateData.githubUrl,
-              portfolioUrl: filteredCreateData.portfolioUrl,
-              isAvailable: filteredCreateData.isAvailable ?? true,
-              expectedSalary: filteredCreateData.expectedSalary,
+              firstName: (filteredCreateData.firstName as string) || '',
+              lastName: (filteredCreateData.lastName as string) || '',
+              phone: filteredCreateData.phone as string | undefined,
+              avatarId: filteredCreateData.avatarId as string | undefined,
+              dateOfBirth: filteredCreateData.dateOfBirth && typeof filteredCreateData.dateOfBirth === 'string' ? new Date(filteredCreateData.dateOfBirth) : undefined,
+              location: filteredCreateData.location as string | undefined,
+              bio: filteredCreateData.bio as string | undefined,
+              resumeId: filteredCreateData.resumeId as string | undefined,
+              linkedinUrl: filteredCreateData.linkedinUrl as string | undefined,
+              githubUrl: filteredCreateData.githubUrl as string | undefined,
+              portfolioUrl: filteredCreateData.portfolioUrl as string | undefined,
+              isAvailable: filteredCreateData.isAvailable as boolean ?? true,
+              expectedSalary: filteredCreateData.expectedSalary as number | undefined,
               userId,
             },
             include: {
@@ -512,7 +512,21 @@ export class ProfilesService {
 
           profile = await this.prisma.candidateProfile.update({
             where: { userId },
-            data: filteredData,
+            data: {
+              firstName: filteredData.firstName as string | undefined,
+              lastName: filteredData.lastName as string | undefined,
+              phone: filteredData.phone as string | undefined,
+              avatarId: filteredData.avatarId as string | undefined,
+              dateOfBirth: filteredData.dateOfBirth && typeof filteredData.dateOfBirth === 'string' ? new Date(filteredData.dateOfBirth) : undefined,
+              location: filteredData.location as string | undefined,
+              bio: filteredData.bio as string | undefined,
+              resumeId: filteredData.resumeId as string | undefined,
+              linkedinUrl: filteredData.linkedinUrl as string | undefined,
+              githubUrl: filteredData.githubUrl as string | undefined,
+              portfolioUrl: filteredData.portfolioUrl as string | undefined,
+              isAvailable: filteredData.isAvailable as boolean | undefined,
+              expectedSalary: filteredData.expectedSalary as number | undefined,
+            },
             include: {
               user: {
                 select: {

@@ -167,7 +167,10 @@ export class ApplicationsService {
 
     const updatedApplication = await this.prisma.application.update({
       where: { id },
-      data: updateApplicationDto,
+      data: {
+        status: updateApplicationDto.status as any,
+        notes: updateApplicationDto.notes,
+      },
     });
 
     return this.findOne(id);
