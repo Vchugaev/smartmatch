@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, HttpException, HttpStatus } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -28,19 +29,36 @@ async function bootstrap() {
   
   // CORS - временно разрешаем все домены для отладки
   app.enableCors({
-    origin: true, // Разрешаем все домены
+    origin: true, // Разрешаем все доменыизт 
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
     exposedHeaders: ['Set-Cookie'],
   });
   
+  // Глобальный фильтр исключений
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   // Валидация
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
-    disableErrorMessages: process.env.NODE_ENV === 'production',
+    disableErrorMessages: false, // Всегда показываем детальные сообщения об ошибках
+    exceptionFactory: (errors) => {
+      const result = errors.map((error) => ({
+        property: error.property,
+        value: error.value,
+        constraints: error.constraints,
+      }));
+      return new HttpException(
+        {
+          message: 'Validation failed',
+          details: result,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    },
   }));
   
   await app.listen(process.env.PORT ?? 3000);

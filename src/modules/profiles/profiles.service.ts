@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto } from '../../dto/user.dto';
+import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 
 @Injectable()
 export class ProfilesService {
@@ -332,5 +332,159 @@ export class ProfilesService {
         },
       },
     });
+  }
+
+  // Универсальный метод для обновления любого профиля
+  async updateProfile(updateProfileDto: UpdateProfileDto, userId: string) {
+    // Получаем информацию о пользователе и его роли
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Определяем тип профиля и обновляем соответствующие поля
+    switch (user.role) {
+      case 'HR': {
+        const profile = await this.prisma.hRProfile.findUnique({
+          where: { userId }
+        });
+
+        if (!profile) {
+          throw new NotFoundException('HR профиль не найден');
+        }
+
+        // Фильтруем только поля, относящиеся к HR профилю
+        const hrUpdateData = {
+          firstName: updateProfileDto.firstName,
+          lastName: updateProfileDto.lastName,
+          phone: updateProfileDto.phone,
+          avatarId: updateProfileDto.avatarId,
+          company: updateProfileDto.company,
+          position: updateProfileDto.position,
+        };
+
+        // Удаляем undefined поля
+        const filteredData = Object.fromEntries(
+          Object.entries(hrUpdateData).filter(([_, value]) => value !== undefined)
+        );
+
+        return this.prisma.hRProfile.update({
+          where: { userId },
+          data: filteredData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        });
+      }
+
+      case 'CANDIDATE': {
+        const profile = await this.prisma.candidateProfile.findUnique({
+          where: { userId }
+        });
+
+        if (!profile) {
+          throw new NotFoundException('Профиль кандидата не найден');
+        }
+
+        // Фильтруем только поля, относящиеся к кандидату
+        const candidateUpdateData = {
+          firstName: updateProfileDto.firstName,
+          lastName: updateProfileDto.lastName,
+          phone: updateProfileDto.phone,
+          avatarId: updateProfileDto.avatarId,
+          dateOfBirth: updateProfileDto.dateOfBirth,
+          location: updateProfileDto.location,
+          bio: updateProfileDto.bio,
+          resumeId: updateProfileDto.resumeId,
+          linkedinUrl: updateProfileDto.linkedinUrl,
+          githubUrl: updateProfileDto.githubUrl,
+          portfolioUrl: updateProfileDto.portfolioUrl,
+        };
+
+        // Удаляем undefined поля
+        const filteredData = Object.fromEntries(
+          Object.entries(candidateUpdateData).filter(([_, value]) => value !== undefined)
+        );
+
+        return this.prisma.candidateProfile.update({
+          where: { userId },
+          data: filteredData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                role: true,
+              },
+            },
+            skills: {
+              include: {
+                skill: true,
+              },
+            },
+          },
+        });
+      }
+
+      case 'UNIVERSITY': {
+        const profile = await this.prisma.universityProfile.findUnique({
+          where: { userId }
+        });
+
+        if (!profile) {
+          throw new NotFoundException('Профиль университета не найден');
+        }
+
+        // Фильтруем только поля, относящиеся к университету
+        const universityUpdateData = {
+          name: updateProfileDto.name,
+          address: updateProfileDto.address,
+          phone: updateProfileDto.phone,
+          website: updateProfileDto.website,
+          logoId: updateProfileDto.logoId,
+        };
+
+        // Удаляем undefined поля
+        const filteredData = Object.fromEntries(
+          Object.entries(universityUpdateData).filter(([_, value]) => value !== undefined)
+        );
+
+        return this.prisma.universityProfile.update({
+          where: { userId },
+          data: filteredData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                role: true,
+              },
+            },
+            students: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                major: true,
+              },
+            },
+          },
+        });
+      }
+
+      default:
+        throw new ForbiddenException('Неподдерживаемая роль пользователя');
+    }
   }
 }

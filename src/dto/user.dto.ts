@@ -1,5 +1,4 @@
 import { IsString, IsOptional, IsEmail, IsEnum, IsDateString } from 'class-validator';
-import { UserRole } from '@prisma/client';
 
 export class CreateUserDto {
   @IsEmail()
@@ -8,8 +7,8 @@ export class CreateUserDto {
   @IsString()
   password: string;
 
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsEnum(['HR', 'CANDIDATE', 'UNIVERSITY', 'ADMIN', 'ANALYST'])
+  role: string;
 }
 
 export class UpdateUserDto {
@@ -192,6 +191,81 @@ export class UpdateUniversityProfileDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  logoId?: string;
+}
+
+// Универсальный DTO для обновления любого профиля
+export class UpdateProfileDto {
+  // Общие поля для всех типов профилей
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarId?: string;
+
+  // Поля для HR профиля
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  // Поля для кандидата
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  resumeId?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedinUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  githubUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  portfolioUrl?: string;
+
+  // Поля для университета
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
 
   @IsOptional()
   @IsString()

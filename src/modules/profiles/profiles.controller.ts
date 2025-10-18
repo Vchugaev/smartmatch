@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
-import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto } from '../../dto/user.dto';
+import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('profiles')
@@ -54,5 +54,11 @@ export class ProfilesController {
   @Patch('university')
   updateUniversityProfile(@Body() updateUniversityProfileDto: UpdateUniversityProfileDto, @Request() req) {
     return this.profilesService.updateUniversityProfile(updateUniversityProfileDto, req.user.id);
+  }
+
+  // Универсальный эндпоинт для обновления любого профиля
+  @Patch()
+  updateProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
+    return this.profilesService.updateProfile(updateProfileDto, req.user.id);
   }
 }
