@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AutoProfileService } from '../profiles/auto-profile.service';
 import { ModerationActionDto } from './dto/moderation-action.dto';
 import { AdminStatsDto } from './dto/admin-stats.dto';
 import { ModerationStatus } from '@prisma/client';
@@ -7,14 +8,19 @@ import { buildDateFilter } from '../../shared/utils/data.utils';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private autoProfileService: AutoProfileService,
+  ) {}
 
   /**
    * Получить вакансии для модерации
    */
   async getJobsForModeration(filters: any) {
     const { status = 'PENDING', page = 1, limit = 20 } = filters;
-    const skip = (page - 1) * limit;
+    const pageNum = parseInt(page.toString(), 10);
+    const limitNum = parseInt(limit.toString(), 10);
+    const skip = (pageNum - 1) * limitNum;
 
     const where: any = {
       moderationStatus: status,
@@ -43,7 +49,7 @@ export class AdminService {
           },
         },
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.job.count({ where }),
@@ -52,9 +58,9 @@ export class AdminService {
     return {
       jobs,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 
@@ -189,6 +195,7 @@ export class AdminService {
    */
   async getCompaniesStats(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 50 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
     const dateFilter = buildDateFilter(startDate, endDate);
 
     const companies = await this.prisma.hRProfile.findMany({
@@ -209,7 +216,7 @@ export class AdminService {
       orderBy: {
         company: 'asc',
       },
-      take: limit,
+      take: limitNum,
     });
 
     return companies.map(company => ({
@@ -224,6 +231,7 @@ export class AdminService {
    */
   async getUniversitiesStats(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 50 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
     const dateFilter = buildDateFilter(startDate, endDate);
 
     const universities = await this.prisma.universityProfile.findMany({
@@ -242,7 +250,7 @@ export class AdminService {
       orderBy: {
         name: 'asc',
       },
-      take: limit,
+      take: limitNum,
     });
 
     return universities.map(uni => ({
@@ -258,6 +266,7 @@ export class AdminService {
    */
   async getSkillsStats(filters: AdminStatsDto) {
     const { limit = 20 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
 
     const skills = await this.prisma.skillAnalytics.findMany({
       include: {
@@ -266,7 +275,7 @@ export class AdminService {
       orderBy: {
         demandScore: 'desc',
       },
-      take: limit,
+      take: limitNum,
     });
 
     return skills.map(skill => ({
@@ -285,7 +294,9 @@ export class AdminService {
    */
   async getUsers(filters: any) {
     const { role, isActive, page = 1, limit = 50 } = filters;
-    const skip = (page - 1) * limit;
+    const pageNum = parseInt(page.toString(), 10);
+    const limitNum = parseInt(limit.toString(), 10);
+    const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
     if (role) where.role = role;
@@ -313,7 +324,7 @@ export class AdminService {
           },
         },
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.user.count({ where }),
@@ -322,9 +333,9 @@ export class AdminService {
     return {
       users,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 
@@ -384,10 +395,22 @@ export class AdminService {
       throw new Error('Пользователь не найден');
     }
 
-    return this.prisma.user.update({
+    // Обновляем роль пользователя
+    const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { role },
     });
+
+    // Автоматически создаем профиль для новой роли, если его нет
+    try {
+      await this.autoProfileService.ensureProfileExists(userId, role);
+      console.log(`Profile created automatically for user: ${userId}, role: ${role}`);
+    } catch (profileError) {
+      console.warn(`Failed to create profile for user ${userId}:`, profileError.message);
+      // Не прерываем смену роли, если не удалось создать профиль
+    }
+
+    return updatedUser;
   }
 
   /**
@@ -453,7 +476,9 @@ export class AdminService {
    */
   async getModerationHistory(filters: any) {
     const { page = 1, limit = 50, moderatorId, status } = filters;
-    const skip = (page - 1) * limit;
+    const pageNum = parseInt(page.toString(), 10);
+    const limitNum = parseInt(limit.toString(), 10);
+    const skip = (pageNum - 1) * limitNum;
 
     const where: any = {
       moderationStatus: {
@@ -488,7 +513,7 @@ export class AdminService {
           moderatedAt: 'desc',
         },
         skip,
-        take: limit,
+        take: limitNum,
       }),
       this.prisma.job.count({ where }),
     ]);
@@ -496,9 +521,9 @@ export class AdminService {
     return {
       jobs,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 
@@ -836,6 +861,7 @@ export class AdminService {
    */
   async exportUsers(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 1000 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
     const dateFilter = buildDateFilter(startDate, endDate);
 
     const users = await this.prisma.user.findMany({
@@ -845,7 +871,7 @@ export class AdminService {
         candidateProfile: true,
         universityProfile: true,
       },
-      take: limit,
+      take: limitNum,
     });
 
     return {
@@ -860,6 +886,7 @@ export class AdminService {
    */
   async exportJobs(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 1000 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
     const dateFilter = buildDateFilter(startDate, endDate);
 
     const jobs = await this.prisma.job.findMany({
@@ -882,7 +909,7 @@ export class AdminService {
           },
         },
       },
-      take: limit,
+      take: limitNum,
     });
 
     return {
@@ -897,6 +924,7 @@ export class AdminService {
    */
   async exportApplications(filters: AdminStatsDto) {
     const { startDate, endDate, limit = 1000 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
     const dateFilter = buildDateFilter(startDate, endDate);
 
     const applications = await this.prisma.application.findMany({
@@ -917,7 +945,7 @@ export class AdminService {
           },
         },
       },
-      take: limit,
+      take: limitNum,
     });
 
     return {
@@ -958,13 +986,14 @@ export class AdminService {
    */
   async getSystemLogs(filters: any) {
     const { level, limit = 100 } = filters;
+    const limitNum = parseInt(limit.toString(), 10);
 
     const logs = await this.prisma.auditLog.findMany({
       where: {
         ...(level && { action: { contains: level } }),
       },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: limitNum,
       include: {
         user: {
           select: {

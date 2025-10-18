@@ -172,6 +172,8 @@ model User {
   hrProfile        HRProfile?
   candidateProfile CandidateProfile?
   universityProfile UniversityProfile?
+  adminProfile     AdminProfile?
+  moderatorProfile ModeratorProfile?
   events          AnalyticsEvent[]
   notifications   Notification[]
   auditLogs       AuditLog[]
@@ -207,6 +209,8 @@ model MediaFile {
   candidateAvatars CandidateProfile[] @relation("CandidateAvatar") // Связь с аватарами кандидатов
   candidateResumes CandidateProfile[] @relation("CandidateResume") // Связь с резюме кандидатов
   universityLogos UniversityProfile[] @relation("UniversityLogo") // Связь с логотипами университетов
+  adminAvatars AdminProfile[] @relation("AdminAvatar") // Связь с аватарами админов
+  moderatorAvatars ModeratorProfile[] @relation("ModeratorAvatar") // Связь с аватарами модераторов
 
   @@index([type])
   @@index([status])
@@ -745,4 +749,46 @@ model AILog {
   @@index([success])
   @@index([createdAt])
   @@map("ai_logs")
+}
+
+// Профиль администратора
+model AdminProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String
+  lastName  String
+  position  String?  // Должность администратора
+  department String? // Отдел
+  phone     String?
+  avatarId  String?  // ID аватара в MediaFile
+  permissions Json?  // Дополнительные права доступа
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar MediaFile? @relation("AdminAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+
+  @@map("admin_profiles")
+}
+
+// Профиль модератора
+model ModeratorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String
+  lastName  String
+  position  String?  // Должность модератора
+  department String? // Отдел
+  phone     String?
+  avatarId  String?  // ID аватара в MediaFile
+  permissions Json?  // Права модерации
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar MediaFile? @relation("ModeratorAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+
+  @@map("moderator_profiles")
 }

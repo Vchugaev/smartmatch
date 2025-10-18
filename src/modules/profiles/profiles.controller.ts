@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfilesService } from './profiles.service';
 import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { multerConfig } from '../../config/multer.config';
+import { multerConfig, resumeMulterConfig } from '../../config/multer.config';
 import { Response } from 'express';
 
 @Controller('profiles')
@@ -87,6 +87,55 @@ export class ProfilesController {
   @Post('avatar/delete')
   async deleteAvatar(@Request() req) {
     return this.profilesService.deleteAvatar(req.user.id);
+  }
+
+  @Post('candidate/resume')
+  @UseInterceptors(FileInterceptor('file', resumeMulterConfig))
+  async uploadResume(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (!file) {
+      throw new Error('No file provided. Please ensure you are sending a file with the field name "file" and Content-Type: multipart/form-data');
+    }
+    return this.profilesService.uploadResume(file, req.user.id);
+  }
+
+  @Get('candidate/resume')
+  async getResume(@Request() req, @Res() res: Response) {
+    return this.profilesService.getResume(req.user.id, res);
+  }
+
+  @Get('candidate/resume/url')
+  async getResumeUrl(@Request() req) {
+    return this.profilesService.getResumeUrl(req.user.id);
+  }
+
+  @Post('candidate/resume/delete')
+  async deleteResume(@Request() req) {
+    return this.profilesService.deleteResume(req.user.id);
+  }
+
+  // Admin Profile endpoints
+  @Get('admin')
+  getAdminProfile(@Request() req) {
+    return this.profilesService.getAdminProfile(req.user.id);
+  }
+
+  @Patch('admin')
+  updateAdminProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
+    return this.profilesService.updateProfile(updateProfileDto, req.user.id);
+  }
+
+  // Moderator Profile endpoints
+  @Get('moderator')
+  getModeratorProfile(@Request() req) {
+    return this.profilesService.getModeratorProfile(req.user.id);
+  }
+
+  @Patch('moderator')
+  updateModeratorProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
+    return this.profilesService.updateProfile(updateProfileDto, req.user.id);
   }
 
 }

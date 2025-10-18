@@ -7,10 +7,12 @@ import { StorageService } from '../storage/storage.service';
 import { HRProfileStrategy } from './strategies/hr-profile.strategy';
 import { CandidateProfileStrategy } from './strategies/candidate-profile.strategy';
 import { UniversityProfileStrategy } from './strategies/university-profile.strategy';
+import { AdminProfileStrategy } from './strategies/admin-profile.strategy';
+import { ModeratorProfileStrategy } from './strategies/moderator-profile.strategy';
 
 @Module({
   controllers: [ProfilesController],
-  providers: [ProfilesService, AutoProfileService, PrismaService, StorageService, HRProfileStrategy, CandidateProfileStrategy, UniversityProfileStrategy],
+  providers: [ProfilesService, AutoProfileService, PrismaService, StorageService, HRProfileStrategy, CandidateProfileStrategy, UniversityProfileStrategy, AdminProfileStrategy, ModeratorProfileStrategy],
   exports: [ProfilesService, AutoProfileService],
 })
 export class ProfilesModule {}

@@ -8,8 +8,8 @@ import { APPLICATION_INCLUDE_FULL } from '../../shared/constants/prisma-fragment
 export class ApplicationsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createApplicationDto: CreateApplicationDto, candidateId: string) {
-    const { jobId, ...applicationData } = createApplicationDto;
+  async create(createApplicationDto: CreateApplicationDto, userId: string) {
+    const { jobId } = createApplicationDto;
 
     // Проверяем, существует ли вакансия
     const job = await this.prisma.job.findUnique({
@@ -21,12 +21,29 @@ export class ApplicationsService {
       throw new NotFoundException('Вакансия не найдена');
     }
 
+    // Получаем профиль кандидата по userId
+    const candidateProfile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+      include: {
+        resume: true,
+      },
+    });
+
+    if (!candidateProfile) {
+      throw new NotFoundException('Профиль кандидата не найден. Пожалуйста, заполните профиль перед откликом на вакансию');
+    }
+
+    // Проверяем, есть ли резюме в профиле
+    if (!candidateProfile.resumeId) {
+      throw new ConflictException('Для отклика на вакансию необходимо загрузить резюме в профиль');
+    }
+
     // Проверяем, не откликался ли уже кандидат на эту вакансию
     const existingApplication = await this.prisma.application.findUnique({
       where: {
         jobId_candidateId: {
           jobId,
-          candidateId,
+          candidateId: candidateProfile.id,
         },
       },
     });
@@ -37,10 +54,10 @@ export class ApplicationsService {
 
     const application = await this.prisma.application.create({
       data: {
-        ...applicationData,
         jobId,
-        candidateId,
+        candidateId: candidateProfile.id,
         hrId: job.hrId,
+        resumeUrl: candidateProfile.resume?.url, // Автоматически используем резюме из профиля
       },
     });
 
@@ -127,10 +144,15 @@ export class ApplicationsService {
     return this.findOne(id);
   }
 
-  async remove(id: string, candidateId: string) {
+  async remove(id: string, userId: string) {
     const application = await this.findOne(id);
 
-    if (application.candidateId !== candidateId) {
+    // Получаем профиль кандидата по userId
+    const candidateProfile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!candidateProfile || application.candidateId !== candidateProfile.id) {
       throw new ForbiddenException('У вас нет прав для удаления этого отклика');
     }
 
@@ -141,9 +163,18 @@ export class ApplicationsService {
     return { message: 'Отклик успешно удален' };
   }
 
-  async findByCandidate(candidateId: string) {
+  async findByCandidate(userId: string) {
+    // Получаем профиль кандидата по userId
+    const candidateProfile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!candidateProfile) {
+      throw new NotFoundException('Профиль кандидата не найден');
+    }
+
     return this.prisma.application.findMany({
-      where: { candidateId },
+      where: { candidateId: candidateProfile.id },
       include: {
         job: {
           select: {

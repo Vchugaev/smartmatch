@@ -3,7 +3,9 @@ import { IsEmail, IsString, MinLength, IsEnum, Matches, MaxLength } from 'class-
 export enum UserRole {
   HR = 'HR',
   CANDIDATE = 'CANDIDATE',
-  UNIVERSITY = 'UNIVERSITY'
+  UNIVERSITY = 'UNIVERSITY',
+  ADMIN = 'ADMIN',
+  MODERATOR = 'MODERATOR'
 }
 
 export class RegisterDto {
@@ -14,7 +16,7 @@ export class RegisterDto {
   @MinLength(6, { message: 'Пароль должен содержать минимум 6 символа' })
   password: string;
 
-  @IsEnum(UserRole, { message: 'Роль должна быть одной из: HR, CANDIDATE, UNIVERSITY' })
+  @IsEnum(UserRole, { message: 'Роль должна быть одной из: HR, CANDIDATE, UNIVERSITY, ADMIN, MODERATOR' })
   role: UserRole;
 }
 

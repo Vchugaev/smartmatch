@@ -43,6 +43,16 @@ export class AutoProfileService {
           where: { userId },
           select: { id: true }
         });
+      case 'ADMIN':
+        return this.prisma.adminProfile.findUnique({
+          where: { userId },
+          select: { id: true }
+        });
+      case 'MODERATOR':
+        return this.prisma.moderatorProfile.findUnique({
+          where: { userId },
+          select: { id: true }
+        });
       default:
         return null;
     }
@@ -59,6 +69,10 @@ export class AutoProfileService {
         return this.createCandidateProfile(userId);
       case 'UNIVERSITY':
         return this.createUniversityProfile(userId);
+      case 'ADMIN':
+        return this.createAdminProfile(userId);
+      case 'MODERATOR':
+        return this.createModeratorProfile(userId);
       default:
         throw new NotFoundException(`Профиль для роли ${userRole} не поддерживается`);
     }
@@ -123,6 +137,52 @@ export class AutoProfileService {
         userId,
         name: 'Университет',
         address: 'Адрес университета',
+      },
+      select: { id: true }
+    });
+
+    return profile.id;
+  }
+
+  /**
+   * Создает базовый профиль администратора
+   */
+  private async createAdminProfile(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
+    const profile = await this.prisma.adminProfile.create({
+      data: {
+        userId,
+        firstName: 'Администратор',
+        lastName: 'Системы',
+        position: 'Системный администратор',
+        department: 'IT',
+      },
+      select: { id: true }
+    });
+
+    return profile.id;
+  }
+
+  /**
+   * Создает базовый профиль модератора
+   */
+  private async createModeratorProfile(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
+    const profile = await this.prisma.moderatorProfile.create({
+      data: {
+        userId,
+        firstName: 'Модератор',
+        lastName: 'Контента',
+        position: 'Модератор',
+        department: 'Модерация',
       },
       select: { id: true }
     });

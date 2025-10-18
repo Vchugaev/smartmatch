@@ -3,15 +3,6 @@ import { IsString, IsOptional, IsEnum, MaxLength } from 'class-validator';
 export class CreateApplicationDto {
   @IsString()
   jobId: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000, { message: 'Сопроводительное письмо не должно превышать 2000 символов' })
-  coverLetter?: string;
-
-  @IsOptional()
-  @IsString()
-  resumeUrl?: string;
 }
 
 export class UpdateApplicationDto {

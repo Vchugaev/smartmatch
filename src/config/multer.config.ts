@@ -15,3 +15,25 @@ export const multerConfig: MulterOptions = {
     }
   },
 };
+
+// Конфигурация для резюме (документы)
+export const resumeMulterConfig: MulterOptions = {
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+    files: 1, // Только один файл за раз
+  },
+  fileFilter: (req, file, cb) => {
+    // Разрешаем документы для резюме
+    const allowedMimes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, DOC, and DOCX files are allowed for resume'), false);
+    }
+  },
+};
