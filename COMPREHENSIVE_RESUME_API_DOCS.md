@@ -1,8 +1,61 @@
 # 📄 Полная документация API для структурированных резюме
 
-## 🎯 Обзор
+## 🎯 Что это такое?
 
-Система структурированных резюме предоставляет полный набор API для управления резюме кандидатов. Каждое резюме содержит структурированные данные: опыт работы, навыки, образование, проекты и другие разделы.
+Система структурированных резюме позволяет кандидатам создавать детальные резюме с разделами: навыки, опыт работы, образование, проекты, достижения, языки и сертификаты. 
+
+**Главное преимущество**: можно создавать резюме поэтапно - начать с минимума и постепенно дополнять!
+
+## 🚀 Быстрый старт
+
+### Минимальное создание резюме
+```json
+POST /resumes
+{
+  "title": "Frontend Developer"
+}
+```
+
+### Поэтапное заполнение
+```json
+// 1. Создаем базовое резюме
+POST /resumes
+{
+  "title": "Frontend Developer",
+  "isDefault": true
+}
+
+// 2. Добавляем основную информацию
+PUT /resumes/{id}
+{
+  "summary": "Опытный разработчик с 5+ лет опыта",
+  "objective": "Ищу позицию Senior Developer"
+}
+
+// 3. Добавляем навыки
+PUT /resumes/{id}
+{
+  "skills": [
+    { "name": "JavaScript", "level": 5, "category": "Programming" },
+    { "name": "React", "level": 4, "category": "Framework" }
+  ]
+}
+
+// 4. Добавляем опыт работы
+PUT /resumes/{id}
+{
+  "experiences": [
+    {
+      "company": "TechCorp",
+      "position": "Senior Developer",
+      "startDate": "2021-01-01",
+      "endDate": "2024-01-01",
+      "isCurrent": false,
+      "description": "Разработка веб-приложений"
+    }
+  ]
+}
+```
 
 ## 🔐 Аутентификация
 
@@ -14,21 +67,30 @@ Authorization: Bearer <candidate_jwt_token>
 
 **Роли доступа:**
 - `CANDIDATE` - полный доступ к своим резюме
-- `ADMIN` - доступ ко всем резюме
+- `ADMIN` - доступ ко всем резюме  
 - `HR` - доступ к публичным резюме
 
-## 📋 Основные эндпоинты
+## 📋 Основные операции
 
 ### 1. Создание резюме
 
+**Минимальный запрос:**
 ```http
 POST /resumes
 Content-Type: application/json
 Authorization: Bearer <token>
+
+{
+  "title": "Frontend Developer"
+}
 ```
 
-**Тело запроса:**
-```json
+**Полный запрос:**
+```http
+POST /resumes
+Content-Type: application/json
+Authorization: Bearer <token>
+
 {
   "title": "Frontend Developer",
   "summary": "Опытный разработчик с 5+ лет опыта",
@@ -40,7 +102,7 @@ Authorization: Bearer <token>
       "category": "Programming"
     },
     {
-      "name": "React",
+      "name": "React", 
       "level": 4,
       "category": "Framework"
     }
@@ -48,7 +110,7 @@ Authorization: Bearer <token>
   "experiences": [
     {
       "company": "Tech Corp",
-      "position": "Senior Frontend Developer",
+      "position": "Senior Frontend Developer", 
       "startDate": "2020-01-01",
       "endDate": "2023-12-31",
       "isCurrent": false,
@@ -62,7 +124,7 @@ Authorization: Bearer <token>
       "institution": "МГУ",
       "degree": "Бакалавр",
       "field": "Компьютерные науки",
-      "startDate": "2016-09-01",
+      "startDate": "2016-09-01", 
       "endDate": "2020-06-30",
       "isCurrent": false,
       "gpa": 4.5
@@ -73,7 +135,7 @@ Authorization: Bearer <token>
       "name": "E-commerce Platform",
       "description": "Полнофункциональная платформа для онлайн-торговли",
       "startDate": "2023-01-01",
-      "endDate": "2023-08-31",
+      "endDate": "2023-08-31", 
       "isCurrent": false,
       "technologies": ["React", "TypeScript", "Node.js"],
       "url": "https://ecommerce-demo.com",
@@ -94,7 +156,7 @@ Authorization: Bearer <token>
       "level": "Native"
     },
     {
-      "name": "Английский",
+      "name": "Английский", 
       "level": "Fluent",
       "certification": "IELTS 7.5"
     }
@@ -117,7 +179,7 @@ Authorization: Bearer <token>
 ```json
 {
   "id": "resume_123",
-  "candidateId": "candidate_456",
+  "candidateId": "candidate_456", 
   "title": "Frontend Developer",
   "summary": "Опытный разработчик с 5+ лет опыта",
   "objective": "Ищу позицию Senior Frontend Developer",
@@ -158,7 +220,7 @@ Authorization: Bearer <token>
     {
       "id": "resume_123",
       "candidateId": "candidate_456",
-      "title": "Frontend Developer",
+      "title": "Frontend Developer", 
       "summary": "Опытный разработчик с 5+ лет опыта",
       "isDefault": true,
       "isPublic": true,
@@ -256,7 +318,7 @@ Authorization: Bearer <token>
 
 **Ответ:** Новый объект резюме
 
-## 🔍 Дополнительные эндпоинты
+## 🔍 Дополнительные возможности
 
 ### 9. Поиск резюме
 
@@ -801,3 +863,96 @@ const stats = await fetch('/resumes/stats', {
 5. **Используйте HTTPS** для безопасности
 6. **Логируйте** важные операции
 7. **Мониторьте** производительность API
+
+## 💡 Поэтапное создание резюме - лучший подход!
+
+### Сценарий 1: Быстрое создание
+```javascript
+// 1. Создаем базовое резюме
+const resume = await fetch('/resumes', {
+  method: 'POST',
+  body: JSON.stringify({
+    title: 'Frontend Developer',
+    isDefault: true
+  })
+});
+
+// 2. Позже добавляем детали
+await fetch(`/resumes/${resume.id}`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    summary: 'Опытный разработчик',
+    skills: [
+      { name: 'JavaScript', level: 5, category: 'Programming' }
+    ]
+  })
+});
+```
+
+### Сценарий 2: Из шаблона
+```javascript
+// 1. Получаем шаблоны
+const templates = await fetch('/resumes/templates');
+
+// 2. Создаем из шаблона
+const resume = await fetch('/resumes/from-template', {
+  method: 'POST',
+  body: JSON.stringify({
+    templateId: 'frontend-developer',
+    title: 'My Resume'
+  })
+});
+
+// 3. Настраиваем под себя
+await fetch(`/resumes/${resume.id}`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    summary: 'Мое персональное описание',
+    experiences: [
+      {
+        company: 'Моя компания',
+        position: 'Моя должность',
+        startDate: '2020-01-01',
+        endDate: '2024-01-01',
+        isCurrent: false,
+        description: 'Мой опыт работы'
+      }
+    ]
+  })
+});
+```
+
+### Сценарий 3: Импорт существующего
+```javascript
+// 1. Импортируем данные
+const resume = await fetch('/resumes/import', {
+  method: 'POST',
+  body: JSON.stringify({
+    title: 'Imported Resume',
+    resumeData: {
+      summary: 'Импортированное резюме',
+      skills: [
+        { name: 'JavaScript', level: 5, category: 'Programming' }
+      ]
+    }
+  })
+});
+
+// 2. Дополняем недостающими данными
+await fetch(`/resumes/${resume.id}`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    experiences: [
+      {
+        company: 'Новая компания',
+        position: 'Новая должность',
+        startDate: '2024-01-01',
+        isCurrent: true,
+        description: 'Текущая работа'
+      }
+    ]
+  })
+});
+```
+
+**Главное преимущество**: пользователь может начать с минимума и постепенно дополнять резюме по мере необходимости!
