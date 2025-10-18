@@ -94,16 +94,45 @@ export class ModeratorProfileStrategy implements ProfileStrategy {
   }
 
   async updateAvatarId(userId: string, avatarId: string): Promise<void> {
-    await this.prisma.moderatorProfile.update({
-      where: { userId },
-      data: { avatarId }
+    // Проверяем, существует ли профиль модератора
+    const existingProfile = await this.prisma.moderatorProfile.findUnique({
+      where: { userId }
     });
+
+    if (!existingProfile) {
+      // Если профиль не существует, создаем его
+      await this.prisma.moderatorProfile.create({
+        data: {
+          userId,
+          firstName: 'Модератор',
+          lastName: 'Контента',
+          position: 'Модератор',
+          department: 'Модерация',
+          avatarId
+        }
+      });
+    } else {
+      // Если профиль существует, обновляем аватар
+      await this.prisma.moderatorProfile.update({
+        where: { userId },
+        data: { avatarId }
+      });
+    }
   }
 
   async clearAvatarId(userId: string): Promise<void> {
-    await this.prisma.moderatorProfile.update({
-      where: { userId },
-      data: { avatarId: null }
+    // Проверяем, существует ли профиль модератора
+    const existingProfile = await this.prisma.moderatorProfile.findUnique({
+      where: { userId }
     });
+
+    if (existingProfile) {
+      // Если профиль существует, очищаем аватар
+      await this.prisma.moderatorProfile.update({
+        where: { userId },
+        data: { avatarId: null }
+      });
+    }
+    // Если профиль не существует, ничего не делаем
   }
 }

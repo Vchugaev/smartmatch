@@ -94,16 +94,45 @@ export class AdminProfileStrategy implements ProfileStrategy {
   }
 
   async updateAvatarId(userId: string, avatarId: string): Promise<void> {
-    await this.prisma.adminProfile.update({
-      where: { userId },
-      data: { avatarId }
+    // Проверяем, существует ли профиль администратора
+    const existingProfile = await this.prisma.adminProfile.findUnique({
+      where: { userId }
     });
+
+    if (!existingProfile) {
+      // Если профиль не существует, создаем его
+      await this.prisma.adminProfile.create({
+        data: {
+          userId,
+          firstName: 'Администратор',
+          lastName: 'Системы',
+          position: 'Системный администратор',
+          department: 'IT',
+          avatarId
+        }
+      });
+    } else {
+      // Если профиль существует, обновляем аватар
+      await this.prisma.adminProfile.update({
+        where: { userId },
+        data: { avatarId }
+      });
+    }
   }
 
   async clearAvatarId(userId: string): Promise<void> {
-    await this.prisma.adminProfile.update({
-      where: { userId },
-      data: { avatarId: null }
+    // Проверяем, существует ли профиль администратора
+    const existingProfile = await this.prisma.adminProfile.findUnique({
+      where: { userId }
     });
+
+    if (existingProfile) {
+      // Если профиль существует, очищаем аватар
+      await this.prisma.adminProfile.update({
+        where: { userId },
+        data: { avatarId: null }
+      });
+    }
+    // Если профиль не существует, ничего не делаем
   }
 }
