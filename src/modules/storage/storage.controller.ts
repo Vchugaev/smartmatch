@@ -15,19 +15,29 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { StorageService } from './storage.service';
 import { UploadFileDto, FileResponseDto, FileUploadResponseDto } from './dto/storage.dto';
+import { multerConfig } from '../../config/multer.config';
 
 @Controller('storage')
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadDto: UploadFileDto,
   ): Promise<FileUploadResponseDto> {
     if (!file) {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
+    }
+
+    // Дополнительная проверка размера файла
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxFileSize) {
+      throw new HttpException(
+        `File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes (10MB)`,
+        HttpStatus.PAYLOAD_TOO_LARGE
+      );
     }
 
     try {

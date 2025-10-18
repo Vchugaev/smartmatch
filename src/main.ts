@@ -7,7 +7,10 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+    rawBody: true,
+  });
   
   // Безопасность
   app.use(helmet({
@@ -26,6 +29,16 @@ async function bootstrap() {
   
   // Cookie parser
   app.use(cookieParser());
+  
+  // Увеличиваем лимиты для загрузки файлов
+  app.use((req, res, next) => {
+    if (req.url.includes('/storage/upload')) {
+      // Увеличиваем лимит для загрузки файлов
+      req.setTimeout(300000); // 5 минут
+      res.setTimeout(300000); // 5 минут
+    }
+    next();
+  });
   
   // CORS - временно разрешаем все домены для отладки
   app.enableCors({
