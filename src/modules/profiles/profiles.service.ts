@@ -1,10 +1,15 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
+import { StorageService } from '../storage/storage.service';
+import { Response } from 'express';
 
 @Injectable()
 export class ProfilesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   // HR профиль
   async createHRProfile(createHRProfileDto: CreateHRProfileDto, userId: string) {
@@ -45,7 +50,7 @@ export class ProfilesService {
   }
 
   async getHRProfile(userId: string) {
-    const profile = await this.prisma.hRProfile.findUnique({
+    let profile = await this.prisma.hRProfile.findUnique({
       where: { userId },
       include: {
         user: {
@@ -66,11 +71,54 @@ export class ProfilesService {
       },
     });
 
+    // Если профиль не существует, создаем его автоматически
     if (!profile) {
-      throw new NotFoundException('HR профиль не найден');
+      // Проверяем, что пользователь имеет роль HR
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (user?.role !== 'HR') {
+        throw new ForbiddenException('Только пользователи с ролью HR могут иметь HR профиль');
+      }
+
+      // Создаем профиль с пустыми значениями
+      profile = await this.prisma.hRProfile.create({
+        data: {
+          firstName: '',
+          lastName: '',
+          company: '',
+          position: '',
+          userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+          jobs: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
     }
 
-    return profile;
+    // Добавляем URL аватарки к профилю
+    const avatarUrl = await this.getAvatarUrlForProfile(profile.avatarId);
+    
+    return {
+      ...profile,
+      avatarUrl
+    };
   }
 
   async updateHRProfile(updateHRProfileDto: UpdateHRProfileDto, userId: string) {
@@ -143,7 +191,7 @@ export class ProfilesService {
   }
 
   async getCandidateProfile(userId: string) {
-    const profile = await this.prisma.candidateProfile.findUnique({
+    let profile = await this.prisma.candidateProfile.findUnique({
       where: { userId },
       include: {
         user: {
@@ -184,11 +232,73 @@ export class ProfilesService {
       },
     });
 
+    // Если профиль не существует, создаем его автоматически
     if (!profile) {
-      throw new NotFoundException('Профиль кандидата не найден');
+      // Проверяем, что пользователь имеет роль CANDIDATE
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (user?.role !== 'CANDIDATE') {
+        throw new ForbiddenException('Только пользователи с ролью CANDIDATE могут иметь профиль кандидата');
+      }
+
+      // Создаем профиль с пустыми значениями
+      profile = await this.prisma.candidateProfile.create({
+        data: {
+          firstName: '',
+          lastName: '',
+          isAvailable: true,
+          userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+          skills: {
+            include: {
+              skill: true,
+            },
+          },
+          experiences: {
+            orderBy: { startDate: 'desc' },
+          },
+          educations: {
+            orderBy: { startDate: 'desc' },
+          },
+          applications: {
+            include: {
+              job: {
+                select: {
+                  id: true,
+                  title: true,
+                  status: true,
+                  hr: {
+                    select: {
+                      company: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: { appliedAt: 'desc' },
+          },
+        },
+      });
     }
 
-    return profile;
+    // Добавляем URL аватарки к профилю
+    const avatarUrl = await this.getAvatarUrlForProfile(profile.avatarId);
+    
+    return {
+      ...profile,
+      avatarUrl
+    };
   }
 
   async updateCandidateProfile(updateCandidateProfileDto: UpdateCandidateProfileDto, userId: string) {
@@ -268,7 +378,7 @@ export class ProfilesService {
   }
 
   async getUniversityProfile(userId: string) {
-    const profile = await this.prisma.universityProfile.findUnique({
+    let profile = await this.prisma.universityProfile.findUnique({
       where: { userId },
       include: {
         user: {
@@ -294,11 +404,57 @@ export class ProfilesService {
       },
     });
 
+    // Если профиль не существует, создаем его автоматически
     if (!profile) {
-      throw new NotFoundException('Профиль университета не найден');
+      // Проверяем, что пользователь имеет роль UNIVERSITY
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (user?.role !== 'UNIVERSITY') {
+        throw new ForbiddenException('Только пользователи с ролью UNIVERSITY могут иметь профиль университета');
+      }
+
+      // Создаем профиль с пустыми значениями
+      profile = await this.prisma.universityProfile.create({
+        data: {
+          name: '',
+          address: '',
+          userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+          students: {
+            include: {
+              skills: {
+                include: {
+                  skill: true,
+                },
+              },
+            },
+            orderBy: { lastName: 'asc' },
+          },
+          educations: {
+            orderBy: { startDate: 'desc' },
+          },
+        },
+      });
     }
 
-    return profile;
+    // Добавляем URL логотипа к профилю (для университетов используется logoId)
+    const avatarUrl = await this.getAvatarUrlForProfile(profile.logoId);
+    
+    return {
+      ...profile,
+      avatarUrl
+    };
   }
 
   async updateUniversityProfile(updateUniversityProfileDto: UpdateUniversityProfileDto, userId: string) {
@@ -641,6 +797,325 @@ export class ProfilesService {
 
       default:
         throw new ForbiddenException('Неподдерживаемая роль пользователя');
+    }
+  }
+
+  // Вспомогательный метод для получения URL аватарки
+  private async getAvatarUrlForProfile(avatarId: string | null | undefined): Promise<string | null> {
+    if (!avatarId) {
+      return null;
+    }
+
+    try {
+      // Получаем информацию о файле из MediaFile
+      const mediaFile = await this.prisma.mediaFile.findUnique({
+        where: { id: avatarId }
+      });
+
+      if (!mediaFile) {
+        return null;
+      }
+
+      const presignedUrl = await this.storageService.getPresignedUrl(mediaFile.fileName, 7 * 24 * 3600); // 7 дней
+      return presignedUrl;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Методы для работы с аватарками
+  async uploadAvatar(file: Express.Multer.File, userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Загружаем файл в storage
+    const { fileName, presignedUrl } = await this.storageService.uploadFile(file, 'avatars');
+
+    // Создаем запись в MediaFile
+    const mediaFile = await this.prisma.mediaFile.create({
+      data: {
+        originalName: file.originalname,
+        fileName: fileName,
+        mimeType: file.mimetype,
+        size: file.size,
+        url: presignedUrl,
+        bucket: 'avatars',
+        objectName: fileName,
+        type: 'IMAGE',
+        status: 'READY',
+        uploadedBy: userId,
+        metadata: {
+          uploadedVia: 'avatar_upload',
+          profileType: user.role
+        }
+      }
+    });
+
+    // Обновляем профиль с новым avatarId (ID записи из MediaFile)
+    const updateData = { avatarId: mediaFile.id };
+    
+    switch (user.role) {
+      case 'HR':
+        await this.prisma.hRProfile.update({
+          where: { userId },
+          data: updateData
+        });
+        break;
+      case 'CANDIDATE':
+        await this.prisma.candidateProfile.update({
+          where: { userId },
+          data: updateData
+        });
+        break;
+      case 'UNIVERSITY':
+        await this.prisma.universityProfile.update({
+          where: { userId },
+          data: { logoId: mediaFile.id } // Для университетов используется logoId
+        });
+        break;
+    }
+
+    return {
+      success: true,
+      fileName,
+      avatarUrl: presignedUrl,
+      mediaFileId: mediaFile.id,
+      message: 'Аватарка успешно загружена'
+    };
+  }
+
+  async getAvatar(userId: string, res: Response) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    let avatarId: string | null | undefined = null;
+
+    // Получаем avatarId в зависимости от роли
+    switch (user.role) {
+      case 'HR':
+        const hrProfile = await this.prisma.hRProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = hrProfile?.avatarId;
+        break;
+      case 'CANDIDATE':
+        const candidateProfile = await this.prisma.candidateProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = candidateProfile?.avatarId;
+        break;
+      case 'UNIVERSITY':
+        const universityProfile = await this.prisma.universityProfile.findUnique({
+          where: { userId },
+          select: { logoId: true }
+        });
+        avatarId = universityProfile?.logoId;
+        break;
+    }
+
+    if (!avatarId) {
+      throw new NotFoundException('Аватарка не найдена');
+    }
+
+    try {
+      // Получаем информацию о файле из MediaFile
+      const mediaFile = await this.prisma.mediaFile.findUnique({
+        where: { id: avatarId }
+      });
+
+      if (!mediaFile) {
+        throw new NotFoundException('Файл не найден в базе данных');
+      }
+
+      const fileBuffer = await this.storageService.downloadFile(mediaFile.fileName);
+      const fileInfo = await this.storageService.getFileInfo(mediaFile.fileName);
+      
+      res.set({
+        'Content-Type': mediaFile.mimeType || 'application/octet-stream',
+        'Content-Length': mediaFile.size.toString(),
+        'Content-Disposition': `inline; filename="${mediaFile.originalName}"`,
+      });
+      
+      res.send(fileBuffer);
+    } catch (error) {
+      throw new NotFoundException('Файл не найден');
+    }
+  }
+
+  async getAvatarUrl(userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    let avatarId: string | null | undefined = null;
+
+    // Получаем avatarId в зависимости от роли
+    switch (user.role) {
+      case 'HR':
+        const hrProfile = await this.prisma.hRProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = hrProfile?.avatarId;
+        break;
+      case 'CANDIDATE':
+        const candidateProfile = await this.prisma.candidateProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = candidateProfile?.avatarId;
+        break;
+      case 'UNIVERSITY':
+        const universityProfile = await this.prisma.universityProfile.findUnique({
+          where: { userId },
+          select: { logoId: true }
+        });
+        avatarId = universityProfile?.logoId;
+        break;
+    }
+
+    if (!avatarId) {
+      return {
+        success: false,
+        message: 'Аватарка не найдена'
+      };
+    }
+
+    try {
+      // Получаем информацию о файле из MediaFile
+      const mediaFile = await this.prisma.mediaFile.findUnique({
+        where: { id: avatarId }
+      });
+
+      if (!mediaFile) {
+        return {
+          success: false,
+          message: 'Файл не найден в базе данных'
+        };
+      }
+
+      const presignedUrl = await this.storageService.getPresignedUrl(mediaFile.fileName, 7 * 24 * 3600); // 7 дней
+      return {
+        success: true,
+        avatarUrl: presignedUrl,
+        fileName: mediaFile.fileName,
+        originalName: mediaFile.originalName
+      };
+    } catch (error) {
+      throw new NotFoundException('Не удалось получить URL аватарки');
+    }
+  }
+
+  async deleteAvatar(userId: string) {
+    // Получаем информацию о пользователе
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    let avatarId: string | null | undefined = null;
+
+    // Получаем avatarId в зависимости от роли
+    switch (user.role) {
+      case 'HR':
+        const hrProfile = await this.prisma.hRProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = hrProfile?.avatarId;
+        break;
+      case 'CANDIDATE':
+        const candidateProfile = await this.prisma.candidateProfile.findUnique({
+          where: { userId },
+          select: { avatarId: true }
+        });
+        avatarId = candidateProfile?.avatarId;
+        break;
+      case 'UNIVERSITY':
+        const universityProfile = await this.prisma.universityProfile.findUnique({
+          where: { userId },
+          select: { logoId: true }
+        });
+        avatarId = universityProfile?.logoId;
+        break;
+    }
+
+    if (!avatarId) {
+      throw new NotFoundException('Аватарка не найдена');
+    }
+
+    try {
+      // Получаем информацию о файле из MediaFile
+      const mediaFile = await this.prisma.mediaFile.findUnique({
+        where: { id: avatarId }
+      });
+
+      if (!mediaFile) {
+        throw new NotFoundException('Файл не найден в базе данных');
+      }
+
+      // Удаляем файл из storage
+      await this.storageService.deleteFile(mediaFile.fileName);
+
+      // Удаляем запись из MediaFile
+      await this.prisma.mediaFile.delete({
+        where: { id: avatarId }
+      });
+
+      // Обновляем профиль, убирая avatarId
+      switch (user.role) {
+        case 'HR':
+          await this.prisma.hRProfile.update({
+            where: { userId },
+            data: { avatarId: null }
+          });
+          break;
+        case 'CANDIDATE':
+          await this.prisma.candidateProfile.update({
+            where: { userId },
+            data: { avatarId: null }
+          });
+          break;
+        case 'UNIVERSITY':
+          await this.prisma.universityProfile.update({
+            where: { userId },
+            data: { logoId: null }
+          });
+          break;
+      }
+
+      return {
+        success: true,
+        message: 'Аватарка успешно удалена'
+      };
+    } catch (error) {
+      throw new NotFoundException('Не удалось удалить аватарку');
     }
   }
 }

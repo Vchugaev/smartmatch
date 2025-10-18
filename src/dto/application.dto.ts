@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum, MaxLength } from 'class-validator';
 
 export class CreateApplicationDto {
   @IsString()
@@ -6,6 +6,7 @@ export class CreateApplicationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000, { message: 'Сопроводительное письмо не должно превышать 2000 символов' })
   coverLetter?: string;
 
   @IsOptional()
@@ -20,6 +21,7 @@ export class UpdateApplicationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000, { message: 'Заметки не должны превышать 1000 символов' })
   notes?: string;
 }
 

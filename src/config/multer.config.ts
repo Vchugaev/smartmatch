@@ -3,7 +3,7 @@ import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer
 export const multerConfig: MulterOptions = {
   // Не используем diskStorage - файлы обрабатываются в памяти
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 50 * 1024 * 1024, // 50MB
     files: 1, // Только один файл за раз
   },
   fileFilter: (req, file, cb) => {

@@ -32,10 +32,10 @@ export class StorageController {
     }
 
     // Дополнительная проверка размера файла
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFileSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxFileSize) {
       throw new HttpException(
-        `File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes (10MB)`,
+        `File size ${file.size} bytes exceeds maximum allowed size of ${maxFileSize} bytes (50MB)`,
         HttpStatus.PAYLOAD_TOO_LARGE
       );
     }

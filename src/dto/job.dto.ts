@@ -1,23 +1,28 @@
-import { IsString, IsOptional, IsEnum, IsInt, IsBoolean, IsDateString, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, IsBoolean, IsDateString, Min, Max, MaxLength } from 'class-validator';
 import { JobType, JobStatus, ExperienceLevel } from '@prisma/client';
 
 export class CreateJobDto {
   @IsString()
+  @MaxLength(200, { message: 'Название вакансии не должно превышать 200 символов' })
   title: string;
 
   @IsString()
+  @MaxLength(5000, { message: 'Описание не должно превышать 5000 символов' })
   description: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(3000, { message: 'Требования не должны превышать 3000 символов' })
   requirements?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(3000, { message: 'Обязанности не должны превышать 3000 символов' })
   responsibilities?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000, { message: 'Преимущества не должны превышать 2000 символов' })
   benefits?: string;
 
   @IsOptional()
@@ -58,22 +63,27 @@ export class CreateJobDto {
 export class UpdateJobDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200, { message: 'Название вакансии не должно превышать 200 символов' })
   title?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(5000, { message: 'Описание не должно превышать 5000 символов' })
   description?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(3000, { message: 'Требования не должны превышать 3000 символов' })
   requirements?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(3000, { message: 'Обязанности не должны превышать 3000 символов' })
   responsibilities?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000, { message: 'Преимущества не должны превышать 2000 символов' })
   benefits?: string;
 
   @IsOptional()

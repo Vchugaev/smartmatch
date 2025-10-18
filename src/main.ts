@@ -5,11 +5,11 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    bodyParser: true,
-    rawBody: true,
+    bodyParser: false, // Отключаем автоматический body parser для multipart данных
   });
   
   // Безопасность
@@ -27,18 +27,28 @@ async function bootstrap() {
   
   app.use(compression());
   
+  // Middleware для обработки разных типов запросов
+  app.use((req, res, next) => {
+    // Проверяем Content-Type для multipart данных
+    if (req.headers['content-type']?.includes('multipart/form-data')) {
+      // Для multipart данных не применяем JSON parser
+      req.setTimeout(300000); // 5 минут
+      res.setTimeout(300000); // 5 минут
+      next();
+    } else if (req.url.includes('/profiles/avatar/upload') || req.url.includes('/storage/upload')) {
+      // Для загрузки файлов не применяем JSON parser
+      req.setTimeout(300000); // 5 минут
+      res.setTimeout(300000); // 5 минут
+      next();
+    } else {
+      // Для остальных эндпоинтов применяем JSON parser
+      express.json({ limit: '50mb' })(req, res, next);
+    }
+  });
+  
   // Cookie parser
   app.use(cookieParser());
   
-  // Увеличиваем лимиты для загрузки файлов
-  app.use((req, res, next) => {
-    if (req.url.includes('/storage/upload')) {
-      // Увеличиваем лимит для загрузки файлов
-      req.setTimeout(300000); // 5 минут
-      res.setTimeout(300000); // 5 минут
-    }
-    next();
-  });
   
   // CORS - временно разрешаем все домены для отладки
   app.enableCors({

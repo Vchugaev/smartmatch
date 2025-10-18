@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Body, Patch, UseGuards, Request, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, UseGuards, Request, UsePipes, ValidationPipe, UseInterceptors, UploadedFile, Param, Res } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfilesService } from './profiles.service';
 import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { multerConfig } from '../../config/multer.config';
+import { Response } from 'express';
 
 @Controller('profiles')
 @UseGuards(JwtAuthGuard)
@@ -62,4 +65,36 @@ export class ProfilesController {
   updateProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
     return this.profilesService.updateProfile(updateProfileDto, req.user.id);
   }
+
+  // Загрузка аватарки профиля
+  @Post('avatar/upload')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (!file) {
+      throw new Error('No file provided. Please ensure you are sending a file with the field name "file" and Content-Type: multipart/form-data');
+    }
+    return this.profilesService.uploadAvatar(file, req.user.id);
+  }
+
+  // Получение аватарки профиля
+  @Get('avatar')
+  async getAvatar(@Request() req, @Res() res: Response) {
+    return this.profilesService.getAvatar(req.user.id, res);
+  }
+
+  // Получение URL аватарки профиля
+  @Get('avatar/url')
+  async getAvatarUrl(@Request() req) {
+    return this.profilesService.getAvatarUrl(req.user.id);
+  }
+
+  // Удаление аватарки профиля
+  @Post('avatar/delete')
+  async deleteAvatar(@Request() req) {
+    return this.profilesService.deleteAvatar(req.user.id);
+  }
+
 }
