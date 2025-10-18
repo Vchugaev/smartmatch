@@ -50,13 +50,40 @@ async function bootstrap() {
   app.use(cookieParser());
   
   
-  // CORS - временно разрешаем все домены для отладки
+  // CORS - разрешаем все домены
   app.enableCors({
-    origin: true, // Разрешаем все доменыизт 
+    origin: true, // Разрешаем все домены
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cookie'],
-    exposedHeaders: ['Set-Cookie'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With', 
+      'Accept', 
+      'Origin', 
+      'Cookie',
+      'X-CSRF-Token',
+      'X-API-Key',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Methods'
+    ],
+    exposedHeaders: ['Set-Cookie', 'X-Total-Count'],
+    optionsSuccessStatus: 200, // Для поддержки старых браузеров
+    preflightContinue: false, // Обрабатываем preflight запросы
+  });
+
+  // Дополнительная обработка preflight запросов
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cookie, X-CSRF-Token, X-API-Key');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.status(200).end();
+      return;
+    }
+    next();
   });
   
   // Глобальный фильтр исключений
@@ -85,5 +112,18 @@ async function bootstrap() {
   }));
   
   await app.listen(process.env.PORT ?? 3000);
+  
+  // Обработка сигналов завершения для корректного закрытия соединений
+  process.on('SIGINT', async () => {
+    console.log('🛑 Получен сигнал SIGINT, завершаем работу...');
+    await app.close();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    console.log('🛑 Получен сигнал SIGTERM, завершаем работу...');
+    await app.close();
+    process.exit(0);
+  });
 }
 bootstrap();
