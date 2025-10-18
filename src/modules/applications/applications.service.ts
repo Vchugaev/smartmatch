@@ -25,7 +25,10 @@ export class ApplicationsService {
     const candidateProfile = await this.prisma.candidateProfile.findUnique({
       where: { userId },
       include: {
-        resume: true,
+        resumes: {
+          where: { isDefault: true },
+          take: 1
+        },
       },
     });
 
@@ -33,9 +36,10 @@ export class ApplicationsService {
       throw new NotFoundException('Профиль кандидата не найден. Пожалуйста, заполните профиль перед откликом на вакансию');
     }
 
-    // Проверяем, есть ли резюме в профиле
-    if (!candidateProfile.resumeId) {
-      throw new ConflictException('Для отклика на вакансию необходимо загрузить резюме в профиль');
+    // Проверяем, есть ли основное резюме
+    const defaultResume = candidateProfile.resumes[0];
+    if (!defaultResume) {
+      throw new ConflictException('Для отклика на вакансию необходимо создать основное резюме');
     }
 
     // Проверяем, не откликался ли уже кандидат на эту вакансию
@@ -57,7 +61,7 @@ export class ApplicationsService {
         jobId,
         candidateId: candidateProfile.id,
         hrId: job.hrId,
-        resumeUrl: candidateProfile.resume?.url, // Автоматически используем резюме из профиля
+        resumeId: defaultResume.id, // Автоматически используем основное резюме
       },
     });
 

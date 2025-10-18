@@ -74,7 +74,7 @@ export class CandidateProfileStrategy implements ProfileStrategy {
     if (!profile) {
       const candidateData = buildProfileUpdateData(updateProfileDto, [
         'firstName', 'lastName', 'dateOfBirth', 'location', 'bio', 
-        'resumeId', 'linkedinUrl', 'githubUrl', 'portfolioUrl', 'isAvailable', 'expectedSalary'
+        'linkedinUrl', 'githubUrl', 'portfolioUrl', 'isAvailable', 'expectedSalary'
       ]);
       const filteredData = filterUndefinedFields(candidateData);
 
@@ -87,7 +87,7 @@ export class CandidateProfileStrategy implements ProfileStrategy {
           dateOfBirth: safeCast(filteredData.dateOfBirth, 'date'),
           location: filteredData.location,
           bio: filteredData.bio,
-          resumeId: filteredData.resumeId,
+          // resumeId удален - используйте структурированные резюме
           linkedinUrl: filteredData.linkedinUrl,
           githubUrl: filteredData.githubUrl,
           portfolioUrl: filteredData.portfolioUrl,
@@ -116,7 +116,7 @@ export class CandidateProfileStrategy implements ProfileStrategy {
       dateOfBirth: updateProfileDto.dateOfBirth,
       location: updateProfileDto.location,
       bio: updateProfileDto.bio,
-      resumeId: updateProfileDto.resumeId,
+      // resumeId удален - используйте структурированные резюме
       linkedinUrl: updateProfileDto.linkedinUrl,
       githubUrl: updateProfileDto.githubUrl,
       portfolioUrl: updateProfileDto.portfolioUrl,
@@ -136,7 +136,7 @@ export class CandidateProfileStrategy implements ProfileStrategy {
         dateOfBirth: safeCast(filteredData.dateOfBirth, 'date'),
         location: filteredData.location,
         bio: filteredData.bio,
-        resumeId: filteredData.resumeId,
+        // resumeId удален - используйте структурированные резюме
         linkedinUrl: filteredData.linkedinUrl,
         githubUrl: filteredData.githubUrl,
         portfolioUrl: filteredData.portfolioUrl,

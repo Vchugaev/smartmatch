@@ -96,9 +96,7 @@ export class CreateCandidateProfileDto {
   @IsString()
   avatarId?: string;
 
-  @IsOptional()
-  @IsString()
-  resumeId?: string;
+  // resumeId удален - используйте структурированные резюме через /resumes API
 
   @IsOptional()
   @IsString()
@@ -142,9 +140,7 @@ export class UpdateCandidateProfileDto {
   @IsString()
   avatarId?: string;
 
-  @IsOptional()
-  @IsString()
-  resumeId?: string;
+  // resumeId удален - используйте структурированные резюме через /resumes API
 
   @IsOptional()
   @IsString()
@@ -242,9 +238,7 @@ export class UpdateProfileDto {
   @IsString()
   bio?: string;
 
-  @IsOptional()
-  @IsString()
-  resumeId?: string;
+  // resumeId удален - используйте структурированные резюме через /resumes API
 
   @IsOptional()
   @IsUrl()

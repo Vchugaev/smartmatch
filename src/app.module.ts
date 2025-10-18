@@ -15,6 +15,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { ModeratorModule } from './modules/moderator/moderator.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ResumesModule } from './modules/resumes/resumes.module';
 import { PrismaService } from './modules/prisma/prisma.service';
 
 @Module({
@@ -40,6 +41,7 @@ import { PrismaService } from './modules/prisma/prisma.service';
     ModeratorModule,
     StorageModule,
     DashboardModule,
+    ResumesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

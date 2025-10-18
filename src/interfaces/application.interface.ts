@@ -7,7 +7,7 @@ export interface IApplication {
   hrId: string;
   status: ApplicationStatus;
   coverLetter?: string;
-  resumeUrl?: string;
+  resumeId?: string; // Ссылка на структурированное резюме
   notes?: string;
   appliedAt: Date;
   updatedAt: Date;

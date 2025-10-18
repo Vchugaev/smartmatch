@@ -29,7 +29,7 @@ export interface ICandidateProfile {
   dateOfBirth?: Date;
   location?: string;
   bio?: string;
-  resumeUrl?: string;
+  // resumeUrl удален - используйте структурированные резюме через /resumes API
   linkedinUrl?: string;
   githubUrl?: string;
   portfolioUrl?: string;

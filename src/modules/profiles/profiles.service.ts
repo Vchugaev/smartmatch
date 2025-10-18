@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 import { StorageService } from '../storage/storage.service';
@@ -731,192 +731,23 @@ export class ProfilesService {
   }
 
   async uploadResume(file: Express.Multer.File, userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (user.role !== 'CANDIDATE') {
-      throw new ForbiddenException('Only CANDIDATE users can upload resume');
-    }
-
-    const { fileName, presignedUrl } = await this.storageService.uploadFile(file, 'resumes');
-
-    const mediaFile = await this.prisma.mediaFile.create({
-      data: {
-        originalName: file.originalname,
-        fileName: fileName,
-        mimeType: file.mimetype,
-        size: file.size,
-        url: presignedUrl,
-        bucket: 'resumes',
-        objectName: fileName,
-        type: 'RESUME',
-        status: 'READY',
-        uploadedBy: userId,
-        metadata: {
-          uploadedVia: 'resume_upload',
-          profileType: user.role
-        }
-      }
-    });
-
-    // Обновляем профиль кандидата с новым резюме
-    await this.prisma.candidateProfile.update({
-      where: { userId },
-      data: { resumeId: mediaFile.id }
-    });
-
-    return {
-      success: true,
-      fileName,
-      resumeUrl: presignedUrl,
-      mediaFileId: mediaFile.id,
-      message: 'Resume uploaded successfully'
-    };
+    // Этот метод устарел - используйте новую систему структурированных резюме
+    throw new BadRequestException('File-based resumes are deprecated. Please use structured resumes API at /resumes');
   }
 
   async getResume(userId: string, res: Response) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    });
-
-    if (!user || user.role !== 'CANDIDATE') {
-      throw new NotFoundException('Resume not found');
-    }
-
-    const candidateProfile = await this.prisma.candidateProfile.findUnique({
-      where: { userId },
-      select: { resumeId: true }
-    });
-
-    if (!candidateProfile?.resumeId) {
-      throw new NotFoundException('Resume not found');
-    }
-
-    try {
-      const mediaFile = await this.prisma.mediaFile.findUnique({
-        where: { id: candidateProfile.resumeId }
-      });
-
-      if (!mediaFile) {
-        throw new NotFoundException('File not found in database');
-      }
-
-      const fileBuffer = await this.storageService.downloadFile(mediaFile.fileName);
-      
-      res.set({
-        'Content-Type': mediaFile.mimeType || 'application/octet-stream',
-        'Content-Length': mediaFile.size.toString(),
-        'Content-Disposition': `inline; filename="${mediaFile.originalName}"`,
-      });
-      
-      res.send(fileBuffer);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    // Этот метод устарел - используйте новую систему структурированных резюме
+    throw new BadRequestException('File-based resumes are deprecated. Please use structured resumes API at /resumes');
   }
 
   async getResumeUrl(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    });
-
-    if (!user || user.role !== 'CANDIDATE') {
-      return {
-        success: false,
-        message: 'Resume not found'
-      };
-    }
-
-    const candidateProfile = await this.prisma.candidateProfile.findUnique({
-      where: { userId },
-      select: { resumeId: true }
-    });
-
-    if (!candidateProfile?.resumeId) {
-      return {
-        success: false,
-        message: 'Resume not found'
-      };
-    }
-
-    try {
-      const mediaFile = await this.prisma.mediaFile.findUnique({
-        where: { id: candidateProfile.resumeId }
-      });
-
-      if (!mediaFile) {
-        return {
-          success: false,
-          message: 'File not found in database'
-        };
-      }
-
-      const presignedUrl = await this.storageService.getPresignedUrl(mediaFile.fileName, 7 * 24 * 3600);
-      return {
-        success: true,
-        resumeUrl: presignedUrl,
-        fileName: mediaFile.fileName,
-        originalName: mediaFile.originalName
-      };
-    } catch (error) {
-      throw new NotFoundException('Failed to get resume URL');
-    }
+    // Этот метод устарел - используйте новую систему структурированных резюме
+    throw new BadRequestException('File-based resumes are deprecated. Please use structured resumes API at /resumes');
   }
 
   async deleteResume(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    });
-
-    if (!user || user.role !== 'CANDIDATE') {
-      throw new NotFoundException('Resume not found');
-    }
-
-    const candidateProfile = await this.prisma.candidateProfile.findUnique({
-      where: { userId },
-      select: { resumeId: true }
-    });
-
-    if (!candidateProfile?.resumeId) {
-      throw new NotFoundException('Resume not found');
-    }
-
-    try {
-      const mediaFile = await this.prisma.mediaFile.findUnique({
-        where: { id: candidateProfile.resumeId }
-      });
-
-      if (!mediaFile) {
-        throw new NotFoundException('File not found in database');
-      }
-
-      await this.storageService.deleteFile(mediaFile.fileName);
-      await this.prisma.mediaFile.delete({
-        where: { id: candidateProfile.resumeId }
-      });
-
-      // Очищаем resumeId в профиле
-      await this.prisma.candidateProfile.update({
-        where: { userId },
-        data: { resumeId: null }
-      });
-
-      return {
-        success: true,
-        message: 'Resume deleted successfully'
-      };
-    } catch (error) {
-      throw new NotFoundException('Failed to delete resume');
-    }
+    // Этот метод устарел - используйте новую систему структурированных резюме
+    throw new BadRequestException('File-based resumes are deprecated. Please use structured resumes API at /resumes');
   }
 
   // Admin Profile methods
