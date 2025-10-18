@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request, Req } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto, UpdateJobDto, JobQueryDto } from '../../dto/job.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -25,8 +25,13 @@ export class JobsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.jobsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    // Получаем информацию о пользователе и IP адресе
+    const userId = req.user?.id;
+    const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    const userAgent = req.get('User-Agent');
+    
+    return this.jobsService.findOne(id, userId, ipAddress, userAgent);
   }
 
   @Patch(':id')

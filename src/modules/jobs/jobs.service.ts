@@ -112,7 +112,7 @@ export class JobsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string, ipAddress?: string, userAgent?: string) {
     const job = await this.prisma.job.findUnique({
       where: { id },
       include: {
@@ -137,6 +137,11 @@ export class JobsService {
 
     if (!job) {
       throw new NotFoundException('Job not found');
+    }
+
+    // Увеличиваем счетчик просмотров только для уникальных просмотров
+    if (job.status === JobStatus.ACTIVE && job.moderationStatus === ModerationStatus.APPROVED) {
+      await this.trackJobView(id, userId, ipAddress, userAgent);
     }
 
     return job;
@@ -258,5 +263,59 @@ export class JobsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Отслеживание просмотра вакансии
+   * Увеличивает счетчик просмотров только для уникальных просмотров
+   */
+  private async trackJobView(jobId: string, userId?: string, ipAddress?: string, userAgent?: string) {
+    try {
+      // Проверяем, есть ли уже просмотр от этого пользователя
+      const existingView = await this.prisma.jobView.findFirst({
+        where: {
+          jobId,
+          OR: [
+            // Для авторизованных пользователей
+            ...(userId ? [{ userId }] : []),
+            // Для анонимных пользователей по IP и User Agent
+            ...(ipAddress && userAgent ? [{ 
+              userId: null, 
+              ipAddress, 
+              userAgent 
+            }] : []),
+            // Только по IP, если нет User Agent
+            ...(ipAddress && !userAgent ? [{ 
+              userId: null, 
+              ipAddress 
+            }] : []),
+          ],
+        },
+      });
+
+      // Если просмотр уже существует, не увеличиваем счетчик
+      if (existingView) {
+        return;
+      }
+
+      // Создаем новую запись о просмотре
+      await this.prisma.jobView.create({
+        data: {
+          jobId,
+          userId: userId || null,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+        },
+      });
+
+      // Увеличиваем счетчик просмотров в таблице jobs
+      await this.prisma.job.update({
+        where: { id: jobId },
+        data: { views: { increment: 1 } },
+      });
+    } catch (error) {
+      // Логируем ошибку, но не прерываем выполнение
+      console.error('Error tracking job view:', error);
+    }
   }
 }

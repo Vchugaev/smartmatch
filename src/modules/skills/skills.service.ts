@@ -218,4 +218,69 @@ export class SkillsService {
       },
     });
   }
+
+  // Популярные навыки
+  async getPopularSkills() {
+    // Получаем статистику по навыкам из таблицы SkillAnalytics
+    const skillAnalytics = await this.prisma.skillAnalytics.findMany({
+      include: {
+        skill: true,
+      },
+      orderBy: {
+        demandScore: 'desc',
+      },
+      take: 20, // Топ 20 навыков
+    });
+
+    // Если нет данных в SkillAnalytics, считаем популярность по количеству упоминаний
+    if (skillAnalytics.length === 0) {
+      const skillsWithCounts = await this.prisma.skill.findMany({
+        include: {
+          _count: {
+            select: {
+              candidateSkills: true,
+              studentSkills: true,
+            },
+          },
+        },
+        orderBy: [
+          {
+            candidateSkills: {
+              _count: 'desc',
+            },
+          },
+          {
+            studentSkills: {
+              _count: 'desc',
+            },
+          },
+        ],
+        take: 20,
+      });
+
+      return skillsWithCounts.map(skill => ({
+        skill: {
+          id: skill.id,
+          name: skill.name,
+          category: skill.category,
+        },
+        candidateCount: skill._count.candidateSkills,
+        studentCount: skill._count.studentSkills,
+        totalCount: skill._count.candidateSkills + skill._count.studentSkills,
+      }));
+    }
+
+    // Возвращаем данные из SkillAnalytics
+    return skillAnalytics.map(analytics => ({
+      skill: {
+        id: analytics.skill.id,
+        name: analytics.skill.name,
+        category: analytics.skill.category,
+      },
+      candidateCount: analytics.totalCandidates,
+      studentCount: analytics.totalStudents,
+      totalCount: analytics.totalCandidates + analytics.totalStudents,
+      demandScore: analytics.demandScore,
+    }));
+  }
 }

@@ -11,10 +11,10 @@ import { UniversitiesModule } from './modules/universities/universities.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { EducationsModule } from './modules/educations/educations.module';
-import { PublicModule } from './modules/public/public.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ModeratorModule } from './modules/moderator/moderator.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PrismaService } from './modules/prisma/prisma.service';
 
 @Module({
@@ -36,10 +36,10 @@ import { PrismaService } from './modules/prisma/prisma.service';
     ProfilesModule,
     ExperiencesModule,
     EducationsModule,
-    PublicModule,
     AdminModule,
     ModeratorModule,
     StorageModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

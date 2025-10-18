@@ -18,6 +18,11 @@ export class SkillsController {
     return this.skillsService.findAll();
   }
 
+  @Get('popular')
+  getPopularSkills() {
+    return this.skillsService.getPopularSkills();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.skillsService.findOne(id);

@@ -105,6 +105,29 @@ Authorization: Bearer <token>
 }
 ```
 
+#### 🎯 Навыки
+```bash
+# Список всех навыков
+GET /skills
+
+# Популярные навыки (без аутентификации)
+GET /skills/popular
+
+# Навыки кандидата
+GET /skills/candidate/:id
+Authorization: Bearer <token>
+
+# Добавить навык кандидату
+POST /skills/candidate/:id
+Authorization: Bearer <token>
+{
+  "skillId": "skill_id",
+  "level": 4
+}
+```
+
+**Подробная документация**: [SKILLS.md](./SKILLS.md)
+
 ## 🛠 Технологии
 
 - **Backend**: NestJS + TypeScript

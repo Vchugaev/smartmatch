@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -164,5 +164,192 @@ export class AdminController {
   @Patch('moderation/bulk-reject')
   async bulkRejectJobs(@Body() data: { jobIds: string[] }) {
     return this.adminService.bulkRejectJobs(data.jobIds);
+  }
+
+  /**
+   * Получить детальную статистику по вакансиям
+   */
+  @Get('analytics/jobs')
+  async getJobsAnalytics(@Query() filters: AdminStatsDto) {
+    return this.adminService.getJobsAnalytics(filters);
+  }
+
+  /**
+   * Получить статистику по откликам
+   */
+  @Get('analytics/applications')
+  async getApplicationsAnalytics(@Query() filters: AdminStatsDto) {
+    return this.adminService.getApplicationsAnalytics(filters);
+  }
+
+  /**
+   * Получить статистику по пользователям
+   */
+  @Get('analytics/users')
+  async getUsersAnalytics(@Query() filters: AdminStatsDto) {
+    return this.adminService.getUsersAnalytics(filters);
+  }
+
+  /**
+   * Получить статистику по активности
+   */
+  @Get('analytics/activity')
+  async getActivityAnalytics(@Query() filters: AdminStatsDto) {
+    return this.adminService.getActivityAnalytics(filters);
+  }
+
+  /**
+   * Получить отчеты по системе
+   */
+  @Get('reports/system')
+  async getSystemReport(@Query() filters: AdminStatsDto) {
+    return this.adminService.getSystemReport(filters);
+  }
+
+  /**
+   * Получить отчеты по модерации
+   */
+  @Get('reports/moderation')
+  async getModerationReport(@Query() filters: AdminStatsDto) {
+    return this.adminService.getModerationReport(filters);
+  }
+
+  /**
+   * Получить отчеты по найму
+   */
+  @Get('reports/hiring')
+  async getHiringReport(@Query() filters: AdminStatsDto) {
+    return this.adminService.getHiringReport(filters);
+  }
+
+  /**
+   * Экспорт данных
+   */
+  @Get('export/users')
+  async exportUsers(@Query() filters: AdminStatsDto) {
+    return this.adminService.exportUsers(filters);
+  }
+
+  @Get('export/jobs')
+  async exportJobs(@Query() filters: AdminStatsDto) {
+    return this.adminService.exportJobs(filters);
+  }
+
+  @Get('export/applications')
+  async exportApplications(@Query() filters: AdminStatsDto) {
+    return this.adminService.exportApplications(filters);
+  }
+
+  /**
+   * Управление системой
+   */
+  @Get('system/health')
+  async getSystemHealth() {
+    return this.adminService.getSystemHealth();
+  }
+
+  @Get('system/logs')
+  async getSystemLogs(@Query() filters: any) {
+    return this.adminService.getSystemLogs(filters);
+  }
+
+  @Post('system/backup')
+  async createBackup() {
+    return this.adminService.createBackup();
+  }
+
+  @Post('system/maintenance')
+  async startMaintenance(@Body() data: { reason: string }) {
+    return this.adminService.startMaintenance(data.reason);
+  }
+
+  /**
+   * Управление контентом
+   */
+  @Get('content/jobs')
+  async getContentJobs(@Query() filters: any) {
+    return this.adminService.getContentJobs(filters);
+  }
+
+  @Get('content/profiles')
+  async getContentProfiles(@Query() filters: any) {
+    return this.adminService.getContentProfiles(filters);
+  }
+
+  @Patch('content/jobs/:id/feature')
+  async featureJob(@Param('id') id: string) {
+    return this.adminService.featureJob(id);
+  }
+
+  @Patch('content/jobs/:id/unfeature')
+  async unfeatureJob(@Param('id') id: string) {
+    return this.adminService.unfeatureJob(id);
+  }
+
+  /**
+   * Управление уведомлениями
+   */
+  @Get('notifications')
+  async getNotifications(@Query() filters: any) {
+    return this.adminService.getNotifications(filters);
+  }
+
+  @Post('notifications/broadcast')
+  async broadcastNotification(@Body() data: any) {
+    return this.adminService.broadcastNotification(data);
+  }
+
+  @Delete('notifications/:id')
+  async deleteNotification(@Param('id') id: string) {
+    return this.adminService.deleteNotification(id);
+  }
+
+  /**
+   * Управление навыками
+   */
+  @Get('skills/management')
+  async getSkillsManagement(@Query() filters: any) {
+    return this.adminService.getSkillsManagement(filters);
+  }
+
+  @Post('skills/merge')
+  async mergeSkills(@Body() data: { fromSkillId: string; toSkillId: string }) {
+    return this.adminService.mergeSkills(data.fromSkillId, data.toSkillId);
+  }
+
+  @Post('skills/cleanup')
+  async cleanupSkills() {
+    return this.adminService.cleanupSkills();
+  }
+
+  /**
+   * AI и аналитика
+   */
+  @Get('ai/status')
+  async getAIStatus() {
+    return this.adminService.getAIStatus();
+  }
+
+  @Post('ai/retrain')
+  async retrainAI() {
+    return this.adminService.retrainAI();
+  }
+
+  @Get('ai/logs')
+  async getAILogs(@Query() filters: any) {
+    return this.adminService.getAILogs(filters);
+  }
+
+  /**
+   * Интеграции
+   */
+  @Get('integrations')
+  async getIntegrations() {
+    return this.adminService.getIntegrations();
+  }
+
+  @Post('integrations/sync')
+  async syncIntegrations() {
+    return this.adminService.syncIntegrations();
   }
 }

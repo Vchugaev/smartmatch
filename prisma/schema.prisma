@@ -176,6 +176,7 @@ model User {
   notifications   Notification[]
   auditLogs       AuditLog[]
   mediaFiles      MediaFile[] // Загруженные медиа файлы
+  jobViews         JobView[] // Просмотры вакансий
 
   @@index([email])
   @@index([role])
@@ -438,6 +439,7 @@ model Job {
   skills      JobSkill[]
   applications Application[]
   matches     JobMatch[]     // AI матчинг
+  jobViews    JobView[]      // Просмотры вакансии
 
   @@index([status])
   @@index([type])
@@ -562,6 +564,26 @@ model JobMatch {
   @@index([matchScore])
   @@index([isRecommended])
   @@map("job_matches")
+}
+
+// Отслеживание просмотров вакансий
+model JobView {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String?  // Может быть null для анонимных просмотров
+  ipAddress String?  // IP адрес для отслеживания анонимных пользователей
+  userAgent String?  // User Agent для дополнительной идентификации
+  viewedAt  DateTime @default(now())
+
+  // Связи
+  job Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([jobId, userId]) // Один пользователь может просмотреть вакансию только один раз
+  @@index([jobId])
+  @@index([userId])
+  @@index([viewedAt])
+  @@map("job_views")
 }
 
 // Уведомления

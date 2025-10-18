@@ -65,6 +65,7 @@ Content-Type: multipart/form-data
 | PATCH | `/experiences/:id` | Обновить опыт | ✅ | CANDIDATE |
 | DELETE | `/experiences/:id` | Удалить опыт | ✅ | CANDIDATE |
 | GET | `/skills` | Список навыков | ❌ | - |
+| GET | `/skills/popular` | Популярные навыки | ❌ | - |
 | POST | `/skills` | Создать навык | ✅ | Любая |
 | GET | `/skills/candidate/:id` | Навыки кандидата | ✅ | Любая |
 | POST | `/skills/candidate/:id` | Добавить навык кандидату | ✅ | CANDIDATE |
@@ -637,17 +638,20 @@ curl -X POST http://localhost:3000/experiences \
 curl -X GET http://localhost:3000/skills
 ```
 
-**Ответ:**
-```json
-[
-  {
-    "id": "skill_id",
-    "name": "JavaScript",
-    "category": "Programming",
-    "description": "JavaScript programming language"
-  }
-]
+### Популярные навыки
+```bash
+curl -X GET http://localhost:3000/skills/popular
 ```
+
+**Описание**: Получить список самых популярных навыков в системе.
+
+**Особенности**:
+- Не требует аутентификации
+- Приоритет SkillAnalytics → fallback на подсчет упоминаний
+- Максимум 20 навыков
+- Сортировка по спросу и количеству упоминаний
+
+**Подробная документация**: см. [SKILLS.md](./SKILLS.md#популярные-навыки)
 
 ### Создание навыка
 ```bash
