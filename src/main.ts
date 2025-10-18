@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: false, // Отключаем автоматический body parser для multipart данных
   });
-  
+
   // Безопасность
   app.use(helmet({
     contentSecurityPolicy: {
@@ -24,9 +24,9 @@ async function bootstrap() {
     },
     crossOriginEmbedderPolicy: false,
   }));
-  
+
   app.use(compression());
-  
+
   // Middleware для обработки разных типов запросов
   app.use((req, res, next) => {
     // Проверяем Content-Type для multipart данных
@@ -45,22 +45,22 @@ async function bootstrap() {
       express.json({ limit: '50mb' })(req, res, next);
     }
   });
-  
+
   // Cookie parser
   app.use(cookieParser());
-  
-  
+
+
   // CORS - разрешаем все домены
   app.enableCors({
     origin: true, // Разрешаем все домены
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'X-Requested-With', 
-      'Accept', 
-      'Origin', 
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
       'Cookie',
       'X-CSRF-Token',
       'X-API-Key',
@@ -85,7 +85,7 @@ async function bootstrap() {
     }
     next();
   });
-  
+
   // Глобальный фильтр исключений
   app.useGlobalFilters(new GlobalExceptionFilter());
 
@@ -110,9 +110,9 @@ async function bootstrap() {
       );
     },
   }));
-  
+
   await app.listen(process.env.PORT ?? 3000);
-  
+
   // Обработка сигналов завершения для корректного закрытия соединений
   process.on('SIGINT', async () => {
     console.log('🛑 Получен сигнал SIGINT, завершаем работу...');

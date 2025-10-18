@@ -9,8 +9,10 @@ import { CandidateProfileStrategy } from './strategies/candidate-profile.strateg
 import { UniversityProfileStrategy } from './strategies/university-profile.strategy';
 import { AdminProfileStrategy } from './strategies/admin-profile.strategy';
 import { ModeratorProfileStrategy } from './strategies/moderator-profile.strategy';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
+  imports: [ConfigModule],
   controllers: [ProfilesController],
   providers: [ProfilesService, AutoProfileService, PrismaService, StorageService, HRProfileStrategy, CandidateProfileStrategy, UniversityProfileStrategy, AdminProfileStrategy, ModeratorProfileStrategy],
   exports: [ProfilesService, AutoProfileService],
