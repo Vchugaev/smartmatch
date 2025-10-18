@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEmail, IsEnum, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsEnum, IsDateString, IsBoolean, IsNumber, IsUrl } from 'class-validator';
 
 export class CreateUserDto {
   @IsEmail()
@@ -247,16 +247,24 @@ export class UpdateProfileDto {
   resumeId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl()
   linkedinUrl?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl()
   githubUrl?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl()
   portfolioUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  expectedSalary?: number;
 
   // Поля для университета
   @IsOptional()
@@ -268,7 +276,7 @@ export class UpdateProfileDto {
   address?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl()
   website?: string;
 
   @IsOptional()

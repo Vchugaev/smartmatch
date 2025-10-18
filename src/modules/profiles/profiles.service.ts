@@ -445,6 +445,8 @@ export class ProfilesService {
             linkedinUrl: updateProfileDto.linkedinUrl,
             githubUrl: updateProfileDto.githubUrl,
             portfolioUrl: updateProfileDto.portfolioUrl,
+            isAvailable: updateProfileDto.isAvailable,
+            expectedSalary: updateProfileDto.expectedSalary,
           };
 
           // Удаляем undefined поля
@@ -466,6 +468,8 @@ export class ProfilesService {
               linkedinUrl: filteredCreateData.linkedinUrl,
               githubUrl: filteredCreateData.githubUrl,
               portfolioUrl: filteredCreateData.portfolioUrl,
+              isAvailable: filteredCreateData.isAvailable ?? true,
+              expectedSalary: filteredCreateData.expectedSalary,
               userId,
             },
             include: {
@@ -497,6 +501,8 @@ export class ProfilesService {
             linkedinUrl: updateProfileDto.linkedinUrl,
             githubUrl: updateProfileDto.githubUrl,
             portfolioUrl: updateProfileDto.portfolioUrl,
+            isAvailable: updateProfileDto.isAvailable,
+            expectedSalary: updateProfileDto.expectedSalary,
           };
 
           // Удаляем undefined поля

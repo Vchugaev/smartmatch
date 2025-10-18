@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, UseGuards, Request, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { CreateHRProfileDto, UpdateHRProfileDto, CreateCandidateProfileDto, UpdateCandidateProfileDto, CreateUniversityProfileDto, UpdateUniversityProfileDto, UpdateProfileDto } from '../../dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -58,6 +58,7 @@ export class ProfilesController {
 
   // Универсальный эндпоинт для обновления любого профиля
   @Patch()
+  @UsePipes(new ValidationPipe({ skipMissingProperties: true, whitelist: false, forbidNonWhitelisted: false }))
   updateProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
     return this.profilesService.updateProfile(updateProfileDto, req.user.id);
   }
