@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ResumesController } from './resumes.controller';
 import { ResumesService } from './resumes.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ValidationLoggingMiddleware } from '../../middleware/validation-logging.middleware';
 
 @Module({
   imports: [PrismaModule],
@@ -9,4 +10,10 @@ import { PrismaModule } from '../prisma/prisma.module';
   providers: [ResumesService],
   exports: [ResumesService]
 })
-export class ResumesModule {}
+export class ResumesModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(ValidationLoggingMiddleware)
+      .forRoutes('resumes');
+  }
+}

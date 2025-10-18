@@ -1,5 +1,14 @@
 import { IsString, IsOptional, IsBoolean, IsArray, IsObject, ValidateNested, IsNumber, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
+import { 
+  ResumeSkillDto, 
+  ResumeExperienceDto, 
+  ResumeEducationDto, 
+  ResumeProjectDto, 
+  ResumeAchievementDto, 
+  ResumeLanguageDto, 
+  ResumeCertificationDto 
+} from './resume-nested.dto';
 
 // Интерфейсы для структурированных данных резюме
 export interface ResumeSkill {
@@ -79,44 +88,44 @@ export class CreateResumeDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  skills?: ResumeSkill[];
+  @Type(() => ResumeSkillDto)
+  skills?: ResumeSkillDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  experiences?: ResumeExperience[];
+  @Type(() => ResumeExperienceDto)
+  experiences?: ResumeExperienceDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  educations?: ResumeEducation[];
+  @Type(() => ResumeEducationDto)
+  educations?: ResumeEducationDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  projects?: ResumeProject[];
+  @Type(() => ResumeProjectDto)
+  projects?: ResumeProjectDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  achievements?: ResumeAchievement[];
+  @Type(() => ResumeAchievementDto)
+  achievements?: ResumeAchievementDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  languages?: ResumeLanguage[];
+  @Type(() => ResumeLanguageDto)
+  languages?: ResumeLanguageDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  certifications?: ResumeCertification[];
+  @Type(() => ResumeCertificationDto)
+  certifications?: ResumeCertificationDto[];
 
   @IsOptional()
   @IsBoolean()
@@ -144,44 +153,44 @@ export class UpdateResumeDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  skills?: ResumeSkill[];
+  @Type(() => ResumeSkillDto)
+  skills?: ResumeSkillDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  experiences?: ResumeExperience[];
+  @Type(() => ResumeExperienceDto)
+  experiences?: ResumeExperienceDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  educations?: ResumeEducation[];
+  @Type(() => ResumeEducationDto)
+  educations?: ResumeEducationDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  projects?: ResumeProject[];
+  @Type(() => ResumeProjectDto)
+  projects?: ResumeProjectDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  achievements?: ResumeAchievement[];
+  @Type(() => ResumeAchievementDto)
+  achievements?: ResumeAchievementDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  languages?: ResumeLanguage[];
+  @Type(() => ResumeLanguageDto)
+  languages?: ResumeLanguageDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object)
-  certifications?: ResumeCertification[];
+  @Type(() => ResumeCertificationDto)
+  certifications?: ResumeCertificationDto[];
 
   @IsOptional()
   @IsBoolean()

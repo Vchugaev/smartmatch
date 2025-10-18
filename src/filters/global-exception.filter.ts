@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ValidationError } from 'class-validator';
@@ -11,6 +12,7 @@ import { ValidationError } from 'class-validator';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
   private translateValidationError(constraint: string, field: string): string {
     const translations: Record<string, string> = {
       'isString': `${field} должно быть строкой`,
@@ -60,6 +62,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    this.logger.error(`Exception caught: ${exception instanceof Error ? exception.message : 'Unknown error'}`);
+    this.logger.debug(`Request details: ${JSON.stringify({
+      url: request.url,
+      method: request.method,
+      body: request.body,
+      query: request.query,
+      params: request.params
+    }, null, 2)}`);
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Внутренняя ошибка сервера';
     let validationErrors: Record<string, string> | null = null;
@@ -95,7 +106,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ...(validationErrors && { errors: validationErrors }),
     };
 
-    console.error('Exception caught by GlobalExceptionFilter:', {
+    this.logger.error('Exception caught by GlobalExceptionFilter:', {
       status,
       message,
       validationErrors,

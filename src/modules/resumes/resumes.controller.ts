@@ -10,7 +10,8 @@ import {
   UseGuards,
   Request,
   HttpStatus,
-  HttpException
+  HttpException,
+  Logger
 } from '@nestjs/common';
 import { ResumesService } from './resumes.service';
 import { CreateResumeDto, UpdateResumeDto, ResumeResponseDto, ResumeListResponseDto } from '../../dto/resume.dto';
@@ -19,6 +20,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('resumes')
 @UseGuards(JwtAuthGuard)
 export class ResumesController {
+  private readonly logger = new Logger(ResumesController.name);
+
   constructor(private readonly resumesService: ResumesService) {}
 
   @Post()
@@ -26,9 +29,15 @@ export class ResumesController {
     @Request() req: any,
     @Body() createResumeDto: CreateResumeDto
   ): Promise<ResumeResponseDto> {
+    this.logger.log(`Creating resume for user: ${req.user.id}`);
+    this.logger.debug(`CreateResumeDto validation: ${JSON.stringify(createResumeDto, null, 2)}`);
+    
     try {
-      return await this.resumesService.createResume(req.user.id, createResumeDto);
+      const result = await this.resumesService.createResume(req.user.id, createResumeDto);
+      this.logger.log(`Resume created successfully with ID: ${result.id}`);
+      return result;
     } catch (error) {
+      this.logger.error(`Failed to create resume for user ${req.user.id}: ${error.message}`, error.stack);
       throw new HttpException(
         error.message || 'Failed to create resume',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR
@@ -110,9 +119,29 @@ export class ResumesController {
     @Param('id') resumeId: string,
     @Body() updateResumeDto: UpdateResumeDto
   ): Promise<ResumeResponseDto> {
+    this.logger.log(`Updating resume ${resumeId} for user: ${req.user.id}`);
+    this.logger.debug(`UpdateResumeDto validation: ${JSON.stringify(updateResumeDto, null, 2)}`);
+    
+    // Детальная проверка каждого поля
+    this.logger.debug(`Title: ${updateResumeDto.title}`);
+    this.logger.debug(`Summary: ${updateResumeDto.summary}`);
+    this.logger.debug(`Objective: ${updateResumeDto.objective}`);
+    this.logger.debug(`Skills count: ${updateResumeDto.skills?.length || 0}`);
+    this.logger.debug(`Experiences count: ${updateResumeDto.experiences?.length || 0}`);
+    this.logger.debug(`Educations count: ${updateResumeDto.educations?.length || 0}`);
+    this.logger.debug(`Projects count: ${updateResumeDto.projects?.length || 0}`);
+    this.logger.debug(`Achievements count: ${updateResumeDto.achievements?.length || 0}`);
+    this.logger.debug(`Languages count: ${updateResumeDto.languages?.length || 0}`);
+    this.logger.debug(`Certifications count: ${updateResumeDto.certifications?.length || 0}`);
+    this.logger.debug(`IsDefault: ${updateResumeDto.isDefault}`);
+    this.logger.debug(`IsPublic: ${updateResumeDto.isPublic}`);
+    
     try {
-      return await this.resumesService.updateResume(req.user.id, resumeId, updateResumeDto);
+      const result = await this.resumesService.updateResume(req.user.id, resumeId, updateResumeDto);
+      this.logger.log(`Resume ${resumeId} updated successfully`);
+      return result;
     } catch (error) {
+      this.logger.error(`Failed to update resume ${resumeId} for user ${req.user.id}: ${error.message}`, error.stack);
       throw new HttpException(
         error.message || 'Failed to update resume',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR

@@ -1,37 +1,65 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateResumeDto, UpdateResumeDto, ResumeResponseDto, ResumeListResponseDto } from '../../dto/resume.dto';
 import { Resume, ResumeCreateData, ResumeUpdateData, ResumeFilters, ResumePaginationOptions, ResumeListResult } from '../../interfaces/resume.interface';
+import { ResumeDataValidator } from '../../validators/resume-data.validator';
 
 @Injectable()
 export class ResumesService {
+  private readonly logger = new Logger(ResumesService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async createResume(candidateId: string, createResumeDto: CreateResumeDto): Promise<ResumeResponseDto> {
+    this.logger.log(`Creating resume for candidate: ${candidateId}`);
+    this.logger.debug(`CreateResumeDto received: ${JSON.stringify(createResumeDto, null, 2)}`);
+    
     return await this.prisma.safeExecute(async () => {
       // Проверяем, что пользователь существует и является кандидатом
+      this.logger.debug(`Looking up candidate profile for userId: ${candidateId}`);
       const candidate = await this.prisma.candidateProfile.findUnique({
         where: { userId: candidateId },
         include: { user: true }
       });
 
       if (!candidate) {
+        this.logger.error(`Candidate profile not found for userId: ${candidateId}`);
         throw new NotFoundException('Candidate profile not found');
       }
 
+      this.logger.debug(`Found candidate: ${candidate.id}, user role: ${candidate.user.role}`);
       if (candidate.user.role !== 'CANDIDATE') {
+        this.logger.error(`User ${candidateId} is not a candidate, role: ${candidate.user.role}`);
         throw new ForbiddenException('Only candidates can create resumes');
       }
 
       // Если это первое резюме или помечено как основное, делаем его основным
+      this.logger.debug(`Checking existing resumes for candidate: ${candidate.id}`);
       const existingResumes = await this.prisma.resume.count({
         where: { candidateId: candidate.id }
       });
 
+      this.logger.debug(`Found ${existingResumes} existing resumes`);
       const isDefault = createResumeDto.isDefault || existingResumes === 0;
+      this.logger.debug(`Resume will be default: ${isDefault}`);
+
+      // Валидируем данные перед созданием
+      this.logger.debug(`Validating create data before processing`);
+      const validationResult = ResumeDataValidator.validateResumeData(createResumeDto);
+      
+      if (!validationResult.isValid) {
+        this.logger.error(`Validation failed: ${validationResult.errors.join(', ')}`);
+        throw new BadRequestException({
+          message: 'Validation failed',
+          errors: validationResult.errors
+        });
+      }
+      
+      this.logger.debug(`Data validation passed`);
 
       // Если делаем это резюме основным, снимаем флаг с других
       if (isDefault) {
+        this.logger.debug(`Setting other resumes as non-default for candidate: ${candidate.id}`);
         await this.prisma.resume.updateMany({
           where: { 
             candidateId: candidate.id,
@@ -41,6 +69,7 @@ export class ResumesService {
         });
       }
 
+      this.logger.debug(`Preparing resume data for creation`);
       const resumeData = {
         candidateId: candidate.id,
         title: createResumeDto.title,
@@ -57,10 +86,14 @@ export class ResumesService {
         isPublic: createResumeDto.isPublic ?? true
       };
 
+      this.logger.debug(`Resume data prepared: ${JSON.stringify(resumeData, null, 2)}`);
+      this.logger.log(`Creating resume in database`);
+      
       const resume = await this.prisma.resume.create({
         data: resumeData
       });
 
+      this.logger.log(`Resume created successfully with ID: ${resume.id}`);
       return this.mapToResponseDto(resume);
     });
   }
@@ -148,15 +181,21 @@ export class ResumesService {
     resumeId: string,
     updateResumeDto: UpdateResumeDto
   ): Promise<ResumeResponseDto> {
+    this.logger.log(`Updating resume ${resumeId} for candidate: ${candidateId}`);
+    this.logger.debug(`UpdateResumeDto received: ${JSON.stringify(updateResumeDto, null, 2)}`);
+    
     return await this.prisma.safeExecute(async () => {
+      this.logger.debug(`Looking up candidate profile for userId: ${candidateId}`);
       const candidate = await this.prisma.candidateProfile.findUnique({
         where: { userId: candidateId }
       });
 
       if (!candidate) {
+        this.logger.error(`Candidate profile not found for userId: ${candidateId}`);
         throw new NotFoundException('Candidate profile not found');
       }
 
+      this.logger.debug(`Found candidate: ${candidate.id}, looking for resume: ${resumeId}`);
       const existingResume = await this.prisma.resume.findFirst({
         where: {
           id: resumeId,
@@ -165,11 +204,29 @@ export class ResumesService {
       });
 
       if (!existingResume) {
+        this.logger.error(`Resume ${resumeId} not found for candidate ${candidate.id}`);
         throw new NotFoundException('Resume not found');
       }
 
+      this.logger.debug(`Found existing resume: ${existingResume.id}, title: ${existingResume.title}`);
+
+      // Валидируем данные перед обновлением
+      this.logger.debug(`Validating update data before processing`);
+      const validationResult = ResumeDataValidator.validateResumeData(updateResumeDto);
+      
+      if (!validationResult.isValid) {
+        this.logger.error(`Validation failed: ${validationResult.errors.join(', ')}`);
+        throw new BadRequestException({
+          message: 'Validation failed',
+          errors: validationResult.errors
+        });
+      }
+      
+      this.logger.debug(`Data validation passed`);
+
       // Если делаем это резюме основным, снимаем флаг с других
       if (updateResumeDto.isDefault) {
+        this.logger.debug(`Setting resume ${resumeId} as default, updating other resumes`);
         await this.prisma.resume.updateMany({
           where: { 
             candidateId: candidate.id,
@@ -180,6 +237,19 @@ export class ResumesService {
         });
       }
 
+      this.logger.debug(`Preparing update data for resume ${resumeId}`);
+      
+      // Детальная проверка каждого поля перед обновлением
+      this.logger.debug(`Raw updateResumeDto: ${JSON.stringify(updateResumeDto, null, 2)}`);
+      
+      // Проверяем skills отдельно
+      if (updateResumeDto.skills) {
+        this.logger.debug(`Skills validation: ${JSON.stringify(updateResumeDto.skills, null, 2)}`);
+        updateResumeDto.skills.forEach((skill, index) => {
+          this.logger.debug(`Skill ${index}: name=${skill.name}, level=${skill.level}, category=${skill.category}`);
+        });
+      }
+      
       const updateData = {
         ...updateResumeDto,
         skills: updateResumeDto.skills as any,
@@ -191,11 +261,15 @@ export class ResumesService {
         certifications: updateResumeDto.certifications as any
       };
 
+      this.logger.debug(`Update data prepared: ${JSON.stringify(updateData, null, 2)}`);
+      this.logger.log(`Updating resume ${resumeId} in database`);
+      
       const updatedResume = await this.prisma.resume.update({
         where: { id: resumeId },
         data: updateData
       });
 
+      this.logger.log(`Resume ${resumeId} updated successfully`);
       return this.mapToResponseDto(updatedResume);
     });
   }
