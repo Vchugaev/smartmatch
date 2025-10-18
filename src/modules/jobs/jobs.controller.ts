@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Re
 import { JobsService } from './jobs.service';
 import { CreateJobDto, UpdateJobDto, JobQueryDto } from '../../dto/job.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
 @Controller('jobs')
 export class JobsController {
@@ -14,8 +15,11 @@ export class JobsController {
   }
 
   @Get()
-  findAll(@Query() query: JobQueryDto) {
-    return this.jobsService.findAll(query);
+  @UseGuards(OptionalJwtAuthGuard)
+  findAll(@Query() query: JobQueryDto, @Req() req: any) {
+    // Получаем информацию о пользователе для проверки статуса откликов
+    const userId = req.user?.id;
+    return this.jobsService.findAll(query, userId);
   }
 
   @Get('my')
@@ -25,11 +29,16 @@ export class JobsController {
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   findOne(@Param('id') id: string, @Req() req: any) {
     // Получаем информацию о пользователе и IP адресе
     const userId = req.user?.id;
     const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
     const userAgent = req.get('User-Agent');
+    
+    console.log(`[DEBUG] findOne called with userId: ${userId}, jobId: ${id}`);
+    console.log(`[DEBUG] req.user:`, req.user);
+    console.log(`[DEBUG] Authorization header:`, req.headers?.authorization);
     
     return this.jobsService.findOne(id, userId, ipAddress, userAgent);
   }

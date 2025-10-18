@@ -71,7 +71,7 @@ export class JobsService {
     return this.findOne(job.id);
   }
 
-  async findAll(query: JobQueryDto) {
+  async findAll(query: JobQueryDto, userId?: string) {
     const { search, type, experienceLevel, location, remote, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
@@ -103,8 +103,14 @@ export class JobsService {
       this.prisma.job.count({ where }),
     ]);
 
+    // Если пользователь аутентифицирован, добавляем информацию о статусе откликов
+    let jobsWithApplicationStatus = jobs;
+    if (userId) {
+      jobsWithApplicationStatus = await this.addApplicationStatusToJobs(jobs, userId);
+    }
+
     return {
-      jobs,
+      jobs: jobsWithApplicationStatus,
       total,
       page,
       limit,
@@ -113,6 +119,8 @@ export class JobsService {
   }
 
   async findOne(id: string, userId?: string, ipAddress?: string, userAgent?: string) {
+    console.log(`[DEBUG] findOne called with jobId: ${id}, userId: ${userId}`);
+    
     const job = await this.prisma.job.findUnique({
       where: { id },
       include: {
@@ -139,12 +147,31 @@ export class JobsService {
       throw new NotFoundException('Job not found');
     }
 
+    console.log(`[DEBUG] Job found: ${job.title}, applications count: ${job.applications.length}`);
+
     // Увеличиваем счетчик просмотров только для уникальных просмотров
     if (job.status === JobStatus.ACTIVE && job.moderationStatus === ModerationStatus.APPROVED) {
       await this.trackJobView(id, userId, ipAddress, userAgent);
     }
 
-    return job;
+    // Добавляем информацию о статусе отклика, если пользователь аутентифицирован
+    if (userId) {
+      console.log(`[DEBUG] User is authenticated, adding application status`);
+      const jobWithApplicationStatus = await this.addApplicationStatusToJobs([job], userId);
+      return jobWithApplicationStatus[0];
+    }
+
+    console.log(`[DEBUG] User is not authenticated, returning basic info`);
+    // Если пользователь не аутентифицирован, возвращаем базовую информацию без статуса отклика
+    return {
+      ...job,
+      hasApplied: false,
+      applicationStatus: null,
+      appliedAt: null,
+      applicationId: null,
+      applicationCoverLetter: null,
+      applicationNotes: null
+    };
   }
 
   async update(id: string, updateJobDto: UpdateJobDto, userId: string) {
@@ -316,6 +343,102 @@ export class JobsService {
     } catch (error) {
       // Логируем ошибку, но не прерываем выполнение
       console.error('Error tracking job view:', error);
+    }
+  }
+
+  /**
+   * Добавляет информацию о статусе откликов к списку вакансий
+   */
+  private async addApplicationStatusToJobs(jobs: any[], userId: string) {
+    try {
+      console.log(`[DEBUG] addApplicationStatusToJobs called for userId: ${userId}, jobs count: ${jobs.length}`);
+      
+      // Получаем профиль кандидата
+      const candidateProfile = await this.prisma.candidateProfile.findUnique({
+        where: { userId },
+        select: { id: true }
+      });
+
+      console.log(`[DEBUG] Candidate profile found:`, candidateProfile);
+
+      if (!candidateProfile) {
+        console.log(`[DEBUG] No candidate profile found for userId: ${userId}`);
+        // Если нет профиля кандидата, возвращаем вакансии без статуса отклика
+        return jobs.map(job => ({
+          ...job,
+          hasApplied: false,
+          applicationStatus: null,
+          appliedAt: null,
+          applicationId: null,
+          applicationCoverLetter: null,
+          applicationNotes: null
+        }));
+      }
+
+      // Получаем все отклики кандидата на эти вакансии
+      const jobIds = jobs.map(job => job.id);
+      console.log(`[DEBUG] Looking for applications for jobIds:`, jobIds);
+      console.log(`[DEBUG] Candidate ID:`, candidateProfile.id);
+      
+      const applications = await this.prisma.application.findMany({
+        where: {
+          candidateId: candidateProfile.id,
+          jobId: { in: jobIds }
+        },
+        select: {
+          id: true,
+          jobId: true,
+          status: true,
+          appliedAt: true,
+          coverLetter: true,
+          notes: true
+        }
+      });
+
+      console.log(`[DEBUG] Found applications:`, applications);
+
+      // Создаем мапу откликов для быстрого поиска
+      const applicationsMap = new Map();
+      applications.forEach(app => {
+        applicationsMap.set(app.jobId, {
+          id: app.id,
+          status: app.status,
+          appliedAt: app.appliedAt,
+          coverLetter: app.coverLetter,
+          notes: app.notes
+        });
+      });
+
+      console.log(`[DEBUG] Applications map:`, Object.fromEntries(applicationsMap));
+
+      // Добавляем информацию о статусе отклика к каждой вакансии
+      return jobs.map(job => {
+        const application = applicationsMap.get(job.id);
+        const result = {
+          ...job,
+          hasApplied: !!application,
+          applicationStatus: application?.status || null,
+          appliedAt: application?.appliedAt || null,
+          applicationId: application?.id || null,
+          applicationCoverLetter: application?.coverLetter || null,
+          applicationNotes: application?.notes || null
+        };
+        console.log(`[DEBUG] Job ${job.id} result:`, { hasApplied: result.hasApplied, applicationStatus: result.applicationStatus });
+        return result;
+      });
+
+    } catch (error) {
+      console.error('Error adding application status to jobs:', error);
+      // В случае ошибки возвращаем вакансии без статуса отклика
+      return jobs.map(job => ({
+        ...job,
+        hasApplied: false,
+        applicationStatus: null,
+        appliedAt: null,
+        applicationId: null,
+        applicationCoverLetter: null,
+        applicationNotes: null
+      }));
     }
   }
 }
