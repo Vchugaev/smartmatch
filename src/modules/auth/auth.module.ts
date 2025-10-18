@@ -10,7 +10,12 @@ import { PrismaService } from '../prisma/prisma.service';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback-secret-key',
+      secret: process.env.JWT_SECRET || (() => {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('JWT_SECRET must be set in production environment');
+        }
+        return 'fallback-secret-key';
+      })(),
       signOptions: { 
         expiresIn: '1h',
         issuer: 'smartmatch',

@@ -190,8 +190,8 @@ model MediaFile {
   mimeType    String     // MIME тип файла
   size        Int        // Размер файла в байтах
   url         String     // URL файла
-  bucket      String     // Bucket в MinIO
-  objectName  String     // Имя объекта в MinIO
+  bucket      String     // Storage bucket (legacy field)
+  objectName  String     // Storage object name (legacy field)
   type        MediaType  // Тип медиа файла
   status      MediaStatus @default(UPLOADING)
   metadata    Json?      // Дополнительные метаданные

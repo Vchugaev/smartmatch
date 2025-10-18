@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,50 +14,58 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, role } = registerDto;
 
-    // Логирование попытки регистрации
-    console.log(`Registration attempt for email: ${email}, role: ${role}`);
+    try {
+      // Логирование попытки регистрации
+      console.log(`Registration attempt for email: ${email}, role: ${role}`);
 
-    // Проверяем, существует ли пользователь
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
+      // Проверяем, существует ли пользователь
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email },
+      });
 
-    if (existingUser) {
-      console.log(`Registration failed: User already exists for email: ${email}`);
-      throw new ConflictException('Пользователь с таким email уже существует');
+      if (existingUser) {
+        console.log(`Registration failed: User already exists for email: ${email}`);
+        throw new ConflictException('Пользователь с таким email уже существует');
+      }
+
+      // Хешируем пароль
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Создаем пользователя
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role,
+        },
+      });
+
+      // Генерируем JWT токен
+      const payload = { 
+        sub: user.id, 
+        email: user.email, 
+        role: user.role,
+        iat: Math.floor(Date.now() / 1000)
+      };
+      const accessToken = this.jwtService.sign(payload);
+
+      console.log(`User registered successfully: ${user.id}`);
+
+      return {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role as UserRole,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      console.error('Registration error:', error);
+      throw new InternalServerErrorException('Ошибка при создании пользователя');
     }
-
-    // Хешируем пароль
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Создаем пользователя
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role,
-      },
-    });
-
-    // Генерируем JWT токен
-    const payload = { 
-      sub: user.id, 
-      email: user.email, 
-      role: user.role,
-      iat: Math.floor(Date.now() / 1000)
-    };
-    const accessToken = this.jwtService.sign(payload);
-
-    console.log(`User registered successfully: ${user.id}`);
-
-    return {
-      accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role as UserRole,
-      },
-    };
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {

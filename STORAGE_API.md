@@ -1,138 +1,97 @@
-# Storage API Documentation
+# Storage API Endpoints
 
-## Обзор
+API для работы с S3-совместимым хранилищем через MinIO.
 
-Система хранения файлов использует MinIO S3-совместимое хранилище для загрузки и управления изображениями и документами.
-
-## Конфигурация
-
-### Переменные окружения
-
-Добавьте следующие переменные в ваш `.env` файл:
-
-```env
-# MinIO Storage Configuration
-MINIO_ENDPOINT="vchugaev.ru"
-MINIO_PORT=443
-MINIO_USE_SSL=true
-MINIO_ACCESS_KEY="admin"
-MINIO_SECRET_KEY="SuperStrongPassword123"
-MINIO_BASE_URL="https://vchugaev.ru"
+## Базовый URL
+```
+http://localhost:3000/storage
 ```
 
-## API Endpoints
+## Endpoints
 
-### 1. Загрузка аватара пользователя
+### 1. Загрузка файла
+**POST** `/storage/upload`
 
-**POST** `/storage/upload/avatar`
-
-Загружает аватар для любого типа пользователя.
+Загружает файл в S3 хранилище.
 
 **Параметры:**
-- `file` (multipart/form-data): Файл изображения
+- `file` (multipart/form-data) - файл для загрузки
+- `path` (опционально) - путь в хранилище
 
-**Ограничения:**
-- Размер: максимум 5MB
-- Типы файлов: JPEG, PNG, GIF, WebP
+**Пример запроса:**
+```bash
+curl -X POST http://localhost:3000/storage/upload \
+  -F "file=@/path/to/your/file.jpg" \
+  -F "path=images"
+```
 
 **Ответ:**
 ```json
 {
   "success": true,
-  "url": "https://vchugaev.ru/smartmatch/avatars/uuid.jpg",
-  "message": "Avatar uploaded successfully"
+  "fileName": "images/photo.jpg",
+  "originalName": "photo.jpg",
+  "size": 1024000,
+  "mimeType": "image/jpeg",
+  "presignedUrl": "https://storage.vchugaev.ru:443/smartmatch/images/photo.jpg?X-Amz-Algorithm=..."
 }
 ```
 
-### 2. Загрузка логотипа университета
+### 2. Скачивание файла
+**GET** `/storage/download/:fileName`
 
-**POST** `/storage/upload/university-logo`
-
-Загружает логотип для университета. Доступно только для пользователей с ролями UNIVERSITY и ADMIN.
+Скачивает файл из хранилища.
 
 **Параметры:**
-- `file` (multipart/form-data): Файл изображения
+- `fileName` - имя файла в хранилище
 
-**Ограничения:**
-- Размер: максимум 2MB
-- Типы файлов: JPEG, PNG, GIF, WebP, SVG
-
-**Ответ:**
-```json
-{
-  "success": true,
-  "url": "https://vchugaev.ru/smartmatch/university-logos/uuid.png",
-  "message": "University logo uploaded successfully"
-}
+**Пример запроса:**
+```bash
+curl -X GET http://localhost:3000/storage/download/images/photo.jpg \
+  --output photo.jpg
 ```
 
-### 3. Загрузка резюме
+### 3. Получение информации о файле
+**GET** `/storage/info/:fileName`
 
-**POST** `/storage/upload/resume`
-
-Загружает резюме кандидата. Доступно только для пользователей с ролями CANDIDATE и ADMIN.
+Получает метаданные файла.
 
 **Параметры:**
-- `file` (multipart/form-data): Файл документа
+- `fileName` - имя файла в хранилище
 
-**Ограничения:**
-- Размер: максимум 10MB
-- Типы файлов: PDF, DOC, DOCX
+**Пример запроса:**
+```bash
+curl -X GET http://localhost:3000/storage/info/images/photo.jpg
+```
 
 **Ответ:**
 ```json
 {
   "success": true,
-  "url": "https://vchugaev.ru/smartmatch/resumes/uuid.pdf",
-  "message": "Resume uploaded successfully"
+  "fileName": "images/photo.jpg",
+  "size": 1024000,
+  "lastModified": "2024-01-15T10:30:00.000Z",
+  "etag": "\"abc123def456\"",
+  "metaData": {
+    "content-type": "image/jpeg"
+  }
 }
 ```
 
-### 4. Удаление файла
+### 4. Список файлов
+**GET** `/storage/list`
 
-**DELETE** `/storage/file/:objectName`
+Получает список файлов в хранилище.
 
-Удаляет файл из хранилища.
+**Параметры тела запроса:**
+- `prefix` (опционально) - префикс для фильтрации файлов
 
-**Параметры:**
-- `objectName` (path): Имя объекта в хранилище
-
-**Ответ:**
-```json
-{
-  "success": true,
-  "message": "File deleted successfully"
-}
+**Пример запроса:**
+```bash
+curl -X GET http://localhost:3000/storage/list \
+  -H "Content-Type: application/json" \
+  -d '{"prefix": "images/"}'
 ```
-
-### 5. Получение предварительного URL
-
-**GET** `/storage/presigned-url`
-
-Генерирует предварительный URL для доступа к файлу.
-
-**Параметры запроса:**
-- `objectName` (query): Имя объекта
-- `bucket` (query, optional): Имя bucket'а (по умолчанию: smartmatch)
-- `expires` (query, optional): Время жизни URL в секундах (по умолчанию: 604800 - 7 дней)
-
-**Ответ:**
-```json
-{
-  "success": true,
-  "url": "https://vchugaev.ru/smartmatch/avatars/uuid.jpg?X-Amz-Algorithm=..."
-}
-```
-
-### 6. Список файлов (только для админов)
-
-**GET** `/storage/files`
-
-Получает список файлов в bucket'е. Доступно только для пользователей с ролью ADMIN.
-
-**Параметры запроса:**
-- `bucket` (query, optional): Имя bucket'а (по умолчанию: smartmatch)
-- `prefix` (query, optional): Префикс для фильтрации файлов
 
 **Ответ:**
 ```json
@@ -140,93 +99,125 @@ MINIO_BASE_URL="https://vchugaev.ru"
   "success": true,
   "files": [
     {
-      "name": "avatars/uuid.jpg",
-      "size": 12345,
-      "lastModified": "2024-01-01T00:00:00.000Z"
+      "name": "images/photo1.jpg",
+      "size": 1024000,
+      "lastModified": "2024-01-15T10:30:00.000Z",
+      "etag": "\"abc123def456\""
+    },
+    {
+      "name": "images/photo2.jpg",
+      "size": 2048000,
+      "lastModified": "2024-01-15T11:00:00.000Z",
+      "etag": "\"def456ghi789\""
     }
   ]
 }
 ```
 
-## Структура хранилища
+### 5. Получение presigned URL для скачивания
+**GET** `/storage/presigned/:fileName`
 
-Файлы организованы в следующие папки:
+Генерирует временную ссылку для скачивания файла.
 
-- `avatars/` - Аватары пользователей
-- `university-logos/` - Логотипы университетов
-- `resumes/` - Резюме кандидатов
+**Параметры:**
+- `fileName` - имя файла в хранилище
 
-## Обновление профилей
+**Параметры тела запроса:**
+- `expiry` (опционально) - время жизни ссылки в секундах (по умолчанию 3600)
 
-После загрузки файла, используйте полученный URL для обновления профиля:
+**Пример запроса:**
+```bash
+curl -X GET http://localhost:3000/storage/presigned/images/photo.jpg \
+  -H "Content-Type: application/json" \
+  -d '{"expiry": 7200}'
+```
 
-### HR Profile
+**Ответ:**
 ```json
 {
-  "avatarUrl": "https://vchugaev.ru/smartmatch/avatars/uuid.jpg"
+  "success": true,
+  "url": "https://storage.vchugaev.ru:9001/smartmatch/images/photo.jpg?X-Amz-Algorithm=..."
 }
 ```
 
-### Candidate Profile
+### 6. Получение presigned URL для загрузки
+**GET** `/storage/presigned-upload/:fileName`
+
+Генерирует временную ссылку для загрузки файла.
+
+**Параметры:**
+- `fileName` - имя файла в хранилище
+
+**Параметры тела запроса:**
+- `expiry` (опционально) - время жизни ссылки в секундах (по умолчанию 3600)
+
+**Пример запроса:**
+```bash
+curl -X GET http://localhost:3000/storage/presigned-upload/images/new-photo.jpg \
+  -H "Content-Type: application/json" \
+  -d '{"expiry": 7200}'
+```
+
+**Ответ:**
 ```json
 {
-  "avatarUrl": "https://vchugaev.ru/smartmatch/avatars/uuid.jpg",
-  "resumeUrl": "https://vchugaev.ru/smartmatch/resumes/uuid.pdf"
+  "success": true,
+  "url": "https://storage.vchugaev.ru:9001/smartmatch/images/new-photo.jpg?X-Amz-Algorithm=..."
 }
 ```
 
-### University Profile
+### 7. Удаление файла
+**DELETE** `/storage/:fileName`
+
+Удаляет файл из хранилища.
+
+**Параметры:**
+- `fileName` - имя файла в хранилище
+
+**Пример запроса:**
+```bash
+curl -X DELETE http://localhost:3000/storage/images/photo.jpg
+```
+
+**Ответ:**
 ```json
 {
-  "logoUrl": "https://vchugaev.ru/smartmatch/university-logos/uuid.png"
+  "success": true,
+  "message": "File images/photo.jpg deleted successfully"
 }
 ```
 
-## Аутентификация
+## Коды ошибок
 
-Все endpoints требуют JWT токен в заголовке Authorization:
+- `400 Bad Request` - Неверные параметры запроса
+- `404 Not Found` - Файл не найден
+- `500 Internal Server Error` - Внутренняя ошибка сервера
 
-```
-Authorization: Bearer <your-jwt-token>
-```
+## Конфигурация MinIO
 
-## Обработка ошибок
-
-API возвращает стандартные HTTP коды ошибок:
-
-- `400 Bad Request` - Неверные параметры или файл
-- `401 Unauthorized` - Отсутствует или неверный токен
-- `403 Forbidden` - Недостаточно прав доступа
-- `413 Payload Too Large` - Файл слишком большой
-- `415 Unsupported Media Type` - Неподдерживаемый тип файла
-- `500 Internal Server Error` - Ошибка сервера
+Сервис настроен для подключения к MinIO серверу:
+- **Endpoint:** `storage.vchugaev.ru`
+- **Port:** `9001`
+- **SSL:** `true`
+- **Bucket:** `smartmatch`
 
 ## Примеры использования
 
-### Загрузка аватара с помощью curl
-
+### Загрузка изображения профиля
 ```bash
-curl -X POST \
-  -H "Authorization: Bearer <your-token>" \
-  -F "file=@avatar.jpg" \
-  http://localhost:3000/storage/upload/avatar
+curl -X POST http://localhost:3000/storage/upload \
+  -F "file=@profile.jpg" \
+  -F "path=profiles/user123"
 ```
 
-### Загрузка логотипа университета
-
+### Получение временной ссылки для скачивания
 ```bash
-curl -X POST \
-  -H "Authorization: Bearer <your-token>" \
-  -F "file=@logo.png" \
-  http://localhost:3000/storage/upload/university-logo
-```
-
-### Обновление профиля с новым аватаром
-
-```bash
-curl -X PATCH \
-  -H "Authorization: Bearer <your-token>" \
+curl -X GET http://localhost:3000/storage/presigned/profiles/user123/profile.jpg \
   -H "Content-Type: application/json" \
-  -d '{"avatarUrl": "https://vchugaev.ru/smartmatch/avatars/uuid.jpg"}' \
-  http://localhost:3000/profiles/candidate
+  -d '{"expiry": 3600}'
+```
+
+### Удаление файла
+```bash
+curl -X DELETE http://localhost:3000/storage/profiles/user123/profile.jpg
 ```

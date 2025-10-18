@@ -1,261 +1,175 @@
 import {
   Controller,
   Post,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
-  UseGuards,
-  Request,
+  Get,
   Delete,
   Param,
-  Get,
-  Query,
+  Body,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Response } from 'express';
 import { StorageService } from './storage.service';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
-import { UserRole, MediaType } from '@prisma/client';
+import { UploadFileDto, FileResponseDto, FileUploadResponseDto } from './dto/storage.dto';
 
 @Controller('storage')
-@UseGuards(JwtAuthGuard)
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  /**
-   * Загрузка аватара пользователя
-   */
-  @Post('upload/avatar')
+  @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadAvatar(
+  async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
-  ) {
+    @Body() uploadDto: UploadFileDto,
+  ): Promise<FileUploadResponseDto> {
     if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    // Проверяем тип файла
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Only image files are allowed');
-    }
-
-    // Проверяем размер файла (максимум 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      throw new BadRequestException('File size too large. Maximum size is 5MB');
+      throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
 
     try {
-      const mediaFile = await this.storageService.uploadFile(
-        file,
-        MediaType.AVATAR,
-        req.user.id,
-        'smartmatch',
-        'avatars',
+      const { fileName, presignedUrl } = await this.storageService.uploadFile(file, uploadDto.path);
+      return {
+        success: true,
+        fileName,
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+        presignedUrl,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to upload file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
-      return {
-        success: true,
-        mediaFile,
-        message: 'Avatar uploaded successfully',
-      };
-    } catch (error) {
-      throw new BadRequestException(`Failed to upload avatar: ${error.message}`);
     }
   }
 
-  /**
-   * Загрузка логотипа университета
-   */
-  @Post('upload/university-logo')
-  @UseInterceptors(FileInterceptor('file'))
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.UNIVERSITY, UserRole.ADMIN)
-  async uploadUniversityLogo(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    // Проверяем тип файла
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Only image files are allowed');
-    }
-
-    // Проверяем размер файла (максимум 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB
-    if (file.size > maxSize) {
-      throw new BadRequestException('File size too large. Maximum size is 2MB');
-    }
-
+  @Get('download/:fileName')
+  async downloadFile(
+    @Param('fileName') fileName: string,
+    @Res() res: Response,
+  ): Promise<void> {
     try {
-      const mediaFile = await this.storageService.uploadFile(
-        file,
-        MediaType.LOGO,
-        req.user.id,
-        'smartmatch',
-        'university-logos',
+      const fileBuffer = await this.storageService.downloadFile(fileName);
+      const fileInfo = await this.storageService.getFileInfo(fileName);
+      
+      res.set({
+        'Content-Type': fileInfo.metaData['content-type'] || 'application/octet-stream',
+        'Content-Length': fileInfo.size.toString(),
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+      });
+      
+      res.send(fileBuffer);
+    } catch (error) {
+      throw new HttpException(
+        'Failed to download file',
+        HttpStatus.NOT_FOUND,
       );
-      return {
-        success: true,
-        mediaFile,
-        message: 'University logo uploaded successfully',
-      };
-    } catch (error) {
-      throw new BadRequestException(`Failed to upload logo: ${error.message}`);
     }
   }
 
-  /**
-   * Загрузка резюме
-   */
-  @Post('upload/resume')
-  @UseInterceptors(FileInterceptor('file'))
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CANDIDATE, UserRole.ADMIN)
-  async uploadResume(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    // Проверяем тип файла
-    const allowedMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Only PDF and Word documents are allowed');
-    }
-
-    // Проверяем размер файла (максимум 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      throw new BadRequestException('File size too large. Maximum size is 10MB');
-    }
-
+  @Get('info/:fileName')
+  async getFileInfo(@Param('fileName') fileName: string): Promise<any> {
     try {
-      const mediaFile = await this.storageService.uploadFile(
-        file,
-        MediaType.RESUME,
-        req.user.id,
-        'smartmatch',
-        'resumes',
+      const fileInfo = await this.storageService.getFileInfo(fileName);
+      return {
+        success: true,
+        fileName,
+        size: fileInfo.size,
+        lastModified: fileInfo.lastModified,
+        etag: fileInfo.etag,
+        metaData: fileInfo.metaData,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'File not found',
+        HttpStatus.NOT_FOUND,
       );
-      return {
-        success: true,
-        mediaFile,
-        message: 'Resume uploaded successfully',
-      };
-    } catch (error) {
-      throw new BadRequestException(`Failed to upload resume: ${error.message}`);
     }
   }
 
-  /**
-   * Удаление файла
-   */
-  @Delete('file/:mediaFileId')
-  async deleteFile(@Param('mediaFileId') mediaFileId: string) {
+  @Get('list')
+  async listFiles(@Body() body: { prefix?: string }): Promise<any> {
     try {
-      await this.storageService.deleteFile(mediaFileId);
+      const files = await this.storageService.listFiles(body.prefix);
       return {
         success: true,
-        message: 'File deleted successfully',
+        files: files.map(file => ({
+          name: file.name,
+          size: file.size,
+          lastModified: file.lastModified,
+          etag: file.etag,
+        })),
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to delete file: ${error.message}`);
-    }
-  }
-
-  /**
-   * Получение информации о медиа файле
-   */
-  @Get('file/:mediaFileId')
-  async getMediaFile(@Param('mediaFileId') mediaFileId: string) {
-    try {
-      const mediaFile = await this.storageService.getMediaFile(mediaFileId);
-      return {
-        success: true,
-        mediaFile,
-      };
-    } catch (error) {
-      throw new BadRequestException(`Failed to get media file: ${error.message}`);
-    }
-  }
-
-  /**
-   * Получение списка медиа файлов пользователя
-   */
-  @Get('files')
-  async getUserMediaFiles(
-    @Request() req: any,
-    @Query('type') type?: MediaType,
-  ) {
-    try {
-      const mediaFiles = await this.storageService.getUserMediaFiles(
-        req.user.id,
-        type,
+      throw new HttpException(
+        'Failed to list files',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
-      return {
-        success: true,
-        mediaFiles,
-      };
-    } catch (error) {
-      throw new BadRequestException(`Failed to get media files: ${error.message}`);
     }
   }
 
-  /**
-   * Получение предварительного URL для файла
-   */
-  @Get('presigned-url')
+  @Get('presigned/:fileName')
   async getPresignedUrl(
-    @Query('objectName') objectName: string,
-    @Query('bucket') bucket: string = 'smartmatch',
-    @Query('expires') expires: string = '604800', // 7 дней по умолчанию
-  ) {
+    @Param('fileName') fileName: string,
+    @Body() body: { expiry?: number },
+  ): Promise<{ success: boolean; url: string }> {
     try {
       const url = await this.storageService.getPresignedUrl(
-        objectName,
-        bucket,
-        parseInt(expires),
+        fileName,
+        body.expiry || 3600,
       );
       return {
         success: true,
         url,
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to generate presigned URL: ${error.message}`);
+      throw new HttpException(
+        'Failed to generate presigned URL',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  /**
-   * Получение списка файлов
-   */
-  @Get('files')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async listFiles(
-    @Query('bucket') bucket: string = 'smartmatch',
-    @Query('prefix') prefix?: string,
-  ) {
+  @Get('presigned-upload/:fileName')
+  async getPresignedUploadUrl(
+    @Param('fileName') fileName: string,
+    @Body() body: { expiry?: number },
+  ): Promise<{ success: boolean; url: string }> {
     try {
-      const files = await this.storageService.listFiles(bucket, prefix);
+      const url = await this.storageService.getPresignedUploadUrl(
+        fileName,
+        body.expiry || 3600,
+      );
       return {
         success: true,
-        files,
+        url,
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to list files: ${error.message}`);
+      throw new HttpException(
+        'Failed to generate presigned upload URL',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete(':fileName')
+  async deleteFile(@Param('fileName') fileName: string): Promise<any> {
+    try {
+      await this.storageService.deleteFile(fileName);
+      return {
+        success: true,
+        message: `File ${fileName} deleted successfully`,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to delete file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
