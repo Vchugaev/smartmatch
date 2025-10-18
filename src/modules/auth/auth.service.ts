@@ -47,7 +47,10 @@ export class AuthService {
         role: user.role,
         iat: Math.floor(Date.now() / 1000)
       };
-      const accessToken = this.jwtService.sign(payload);
+      const accessToken = this.jwtService.sign(payload, {
+        issuer: 'smartmatch',
+        audience: 'smartmatch-users'
+      });
 
       console.log(`User registered successfully: ${user.id}`);
 
@@ -110,7 +113,10 @@ export class AuthService {
       role: user.role,
       iat: Math.floor(Date.now() / 1000)
     };
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, {
+      issuer: 'smartmatch',
+      audience: 'smartmatch-users'
+    });
 
     console.log(`User logged in successfully: ${user.id}`);
 
