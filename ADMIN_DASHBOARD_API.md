@@ -575,3 +575,367 @@ curl -X PATCH \
 4. **Настройки** - системные параметры
 
 **Замените `ADMIN_TOKEN` на ваш JWT токен администратора!** 🚀
+
+---
+
+## 📄 Управление резюме
+
+### GET /admin/resumes
+Получить список всех резюме в системе
+
+**Параметры запроса:**
+```
+?page=1&limit=20&search=developer&isPublic=true&candidateId=user_id
+```
+
+**Ответ:**
+```json
+{
+  "resumes": [
+    {
+      "id": "resume_id",
+      "candidateId": "candidate_id",
+      "title": "Frontend Developer",
+      "summary": "Опытный разработчик...",
+      "isDefault": true,
+      "isPublic": true,
+      "createdAt": "2025-10-18T16:49:17.000Z",
+      "updatedAt": "2025-10-18T16:49:17.000Z",
+      "candidate": {
+        "user": {
+          "email": "candidate@example.com",
+          "firstName": "Иван",
+          "lastName": "Петров"
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "pages": 8
+  }
+}
+```
+
+### GET /admin/resumes/{id}
+Получить детальную информацию о резюме
+
+**Ответ:**
+```json
+{
+  "id": "resume_id",
+  "candidateId": "candidate_id",
+  "title": "Frontend Developer",
+  "summary": "Опытный frontend разработчик с 5+ лет опыта",
+  "objective": "Ищу позицию Senior Frontend Developer",
+  "skills": [
+    { "name": "JavaScript", "level": 5, "category": "Programming" },
+    { "name": "React", "level": 4, "category": "Framework" }
+  ],
+  "experiences": [
+    {
+      "company": "TechCorp",
+      "position": "Senior Developer",
+      "startDate": "2021-01-01",
+      "endDate": "2024-01-01",
+      "isCurrent": false,
+      "description": "Разработка веб-приложений",
+      "achievements": ["Увеличил производительность на 40%"],
+      "technologies": ["React", "TypeScript", "Node.js"]
+    }
+  ],
+  "educations": [
+    {
+      "institution": "МГУ",
+      "degree": "Бакалавр",
+      "field": "Компьютерные науки",
+      "startDate": "2016-09-01",
+      "endDate": "2020-06-30",
+      "isCurrent": false,
+      "gpa": 4.5
+    }
+  ],
+  "projects": [
+    {
+      "name": "E-commerce Platform",
+      "description": "Полнофункциональная платформа",
+      "startDate": "2023-01-01",
+      "endDate": "2023-08-31",
+      "isCurrent": false,
+      "technologies": ["React", "Node.js", "PostgreSQL"],
+      "url": "https://demo.com",
+      "githubUrl": "https://github.com/user/project"
+    }
+  ],
+  "achievements": [
+    {
+      "title": "Лучший разработчик года",
+      "description": "Награда за достижения",
+      "date": "2023-12-15",
+      "category": "Professional"
+    }
+  ],
+  "languages": [
+    { "name": "Русский", "level": "Native" },
+    { "name": "Английский", "level": "Fluent", "certification": "IELTS 7.5" }
+  ],
+  "certifications": [
+    {
+      "name": "AWS Certified Developer",
+      "issuer": "Amazon Web Services",
+      "date": "2023-03-15",
+      "credentialId": "AWS-DEV-123456",
+      "url": "https://aws.amazon.com/certification/"
+    }
+  ],
+  "isDefault": true,
+  "isPublic": true,
+  "createdAt": "2025-10-18T16:49:17.000Z",
+  "updatedAt": "2025-10-18T16:49:17.000Z",
+  "candidate": {
+    "user": {
+      "email": "candidate@example.com",
+      "firstName": "Иван",
+      "lastName": "Петров"
+    }
+  }
+}
+```
+
+### PATCH /admin/resumes/{id}/visibility
+Изменить видимость резюме
+
+**Тело запроса:**
+```json
+{
+  "isPublic": false
+}
+```
+
+**Ответ:**
+```json
+{
+  "id": "resume_id",
+  "isPublic": false,
+  "updatedAt": "2025-10-18T16:49:17.000Z"
+}
+```
+
+### DELETE /admin/resumes/{id}
+Удалить резюме
+
+**Ответ:**
+```json
+{
+  "message": "Resume deleted successfully"
+}
+```
+
+---
+
+## 📄 Примеры обновления полей резюме
+
+### 1. Обновление основной информации
+```json
+PUT /resumes/{id}
+{
+  "title": "Senior Frontend Developer",
+  "summary": "Обновленное описание: Опытный разработчик с 6+ лет опыта",
+  "objective": "Ищу позицию Lead Frontend Developer"
+}
+```
+
+### 2. Добавление/обновление навыков
+```json
+PUT /resumes/{id}
+{
+  "skills": [
+    { "name": "JavaScript", "level": 5, "category": "Programming" },
+    { "name": "React", "level": 5, "category": "Framework" },
+    { "name": "Vue.js", "level": 3, "category": "Framework" },
+    { "name": "Docker", "level": 4, "category": "DevOps" },
+    { "name": "GraphQL", "level": 3, "category": "API" }
+  ]
+}
+```
+
+### 3. Добавление нового опыта работы
+```json
+PUT /resumes/{id}
+{
+  "experiences": [
+    {
+      "company": "New Tech Company",
+      "position": "Lead Frontend Developer",
+      "startDate": "2024-02-01",
+      "isCurrent": true,
+      "description": "Руководство командой из 5 разработчиков",
+      "achievements": [
+        "Увеличил продуктивность команды на 30%",
+        "Внедрил новые процессы разработки"
+      ],
+      "technologies": ["React", "TypeScript", "Next.js", "Tailwind CSS"]
+    }
+  ]
+}
+```
+
+### 4. Обновление текущего места работы
+```json
+PUT /resumes/{id}
+{
+  "experiences": [
+    {
+      "company": "Current Company",
+      "position": "Senior Frontend Developer",
+      "startDate": "2022-01-01",
+      "endDate": "2024-12-31",
+      "isCurrent": false,
+      "description": "Обновленное описание работы",
+      "achievements": [
+        "Достижение 1",
+        "Достижение 2"
+      ],
+      "technologies": ["React", "Vue.js", "Node.js"]
+    }
+  ]
+}
+```
+
+### 5. Добавление образования
+```json
+PUT /resumes/{id}
+{
+  "educations": [
+    {
+      "institution": "Новый Университет",
+      "degree": "Магистр",
+      "field": "Computer Science",
+      "startDate": "2024-09-01",
+      "isCurrent": true,
+      "gpa": 4.5,
+      "description": "Специализация в области искусственного интеллекта"
+    }
+  ]
+}
+```
+
+### 6. Добавление нового проекта
+```json
+PUT /resumes/{id}
+{
+  "projects": [
+    {
+      "name": "New Project",
+      "description": "Описание нового проекта",
+      "startDate": "2024-01-01",
+      "isCurrent": true,
+      "technologies": ["React", "Node.js", "MongoDB"],
+      "url": "https://new-project.com",
+      "githubUrl": "https://github.com/user/new-project"
+    }
+  ]
+}
+```
+
+### 7. Добавление достижения
+```json
+PUT /resumes/{id}
+{
+  "achievements": [
+    {
+      "title": "Новое достижение",
+      "description": "Описание достижения",
+      "date": "2024-01-15",
+      "category": "Professional"
+    }
+  ]
+}
+```
+
+### 8. Добавление языка
+```json
+PUT /resumes/{id}
+{
+  "languages": [
+    { "name": "Французский", "level": "Intermediate" },
+    { "name": "Испанский", "level": "Basic" }
+  ]
+}
+```
+
+### 9. Добавление сертификата
+```json
+PUT /resumes/{id}
+{
+  "certifications": [
+    {
+      "name": "Google Cloud Professional",
+      "issuer": "Google",
+      "date": "2024-01-15",
+      "credentialId": "GCP-123456",
+      "url": "https://cloud.google.com/certification/"
+    }
+  ]
+}
+```
+
+### 10. Полное обновление резюме
+```json
+PUT /resumes/{id}
+{
+  "title": "Updated Resume Title",
+  "summary": "Обновленное описание",
+  "objective": "Новая цель",
+  "skills": [
+    { "name": "Vue.js", "level": 3, "category": "Framework" }
+  ],
+  "experiences": [
+    {
+      "company": "New Company",
+      "position": "Lead Developer",
+      "startDate": "2024-02-01",
+      "isCurrent": true,
+      "description": "Руководство командой"
+    }
+  ],
+  "isDefault": true,
+  "isPublic": true
+}
+```
+
+---
+
+## 🧪 Примеры использования резюме
+
+### 1. Получить все резюме
+```bash
+curl -H "Authorization: Bearer ADMIN_TOKEN" \
+  "http://localhost:3000/admin/resumes?page=1&limit=20"
+```
+
+### 2. Получить резюме по ID
+```bash
+curl -H "Authorization: Bearer ADMIN_TOKEN" \
+  http://localhost:3000/admin/resumes/resume_id
+```
+
+### 3. Изменить видимость резюме
+```bash
+curl -X PATCH \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"isPublic": false}' \
+  http://localhost:3000/admin/resumes/resume_id/visibility
+```
+
+### 4. Удалить резюме
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  http://localhost:3000/admin/resumes/resume_id
+```
+
+**Замените `ADMIN_TOKEN` на ваш JWT токен администратора!** 🚀

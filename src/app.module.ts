@@ -16,7 +16,7 @@ import { ModeratorModule } from './modules/moderator/moderator.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ResumesModule } from './modules/resumes/resumes.module';
-import { PrismaService } from './modules/prisma/prisma.service';
+import { PrismaModule } from './modules/prisma/prisma.module';
 
 @Module({
   imports: [
@@ -29,6 +29,7 @@ import { PrismaService } from './modules/prisma/prisma.service';
         limit: parseInt(process.env.RATE_LIMIT_LIMIT || '10'),
       },
     ]),
+    PrismaModule,
     AuthModule,
     JobsModule,
     ApplicationsModule,
@@ -44,6 +45,6 @@ import { PrismaService } from './modules/prisma/prisma.service';
     ResumesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService],
 })
 export class AppModule { }

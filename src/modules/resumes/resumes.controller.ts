@@ -14,10 +14,10 @@ import {
 } from '@nestjs/common';
 import { ResumesService } from './resumes.service';
 import { CreateResumeDto, UpdateResumeDto, ResumeResponseDto, ResumeListResponseDto } from '../../dto/resume.dto';
-// import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('resumes')
-// @UseGuards(JwtAuthGuard) // Временно отключено для тестирования
+@UseGuards(JwtAuthGuard)
 export class ResumesController {
   constructor(private readonly resumesService: ResumesService) {}
 
