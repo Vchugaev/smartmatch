@@ -6,8 +6,23 @@ import { CreateStudentDto, UpdateStudentDto } from '../../dto/student.dto';
 export class UniversitiesService {
   constructor(private prisma: PrismaService) {}
 
+  // Получение ID профиля университета по ID пользователя
+  private async getUniversityProfileId(userId: string): Promise<string> {
+    const universityProfile = await this.prisma.universityProfile.findUnique({
+      where: { userId },
+      select: { id: true }
+    });
+
+    if (!universityProfile) {
+      throw new NotFoundException('Профиль университета не найден');
+    }
+
+    return universityProfile.id;
+  }
+
   // Студенты
-  async createStudent(createStudentDto: CreateStudentDto, universityId: string) {
+  async createStudent(createStudentDto: CreateStudentDto, userId: string) {
+    const universityId = await this.getUniversityProfileId(userId);
     return this.prisma.student.create({
       data: {
         ...createStudentDto,
@@ -16,7 +31,8 @@ export class UniversitiesService {
     });
   }
 
-  async findAllStudents(universityId: string) {
+  async findAllStudents(userId: string) {
+    const universityId = await this.getUniversityProfileId(userId);
     return this.prisma.student.findMany({
       where: { universityId },
       include: {
@@ -30,7 +46,8 @@ export class UniversitiesService {
     });
   }
 
-  async findStudent(id: string, universityId: string) {
+  async findStudent(id: string, userId: string) {
+    const universityId = await this.getUniversityProfileId(userId);
     const student = await this.prisma.student.findUnique({
       where: { id },
       include: {
@@ -58,8 +75,8 @@ export class UniversitiesService {
     return student;
   }
 
-  async updateStudent(id: string, updateStudentDto: UpdateStudentDto, universityId: string) {
-    await this.findStudent(id, universityId);
+  async updateStudent(id: string, updateStudentDto: UpdateStudentDto, userId: string) {
+    await this.findStudent(id, userId);
 
     return this.prisma.student.update({
       where: { id },
@@ -67,8 +84,8 @@ export class UniversitiesService {
     });
   }
 
-  async removeStudent(id: string, universityId: string) {
-    await this.findStudent(id, universityId);
+  async removeStudent(id: string, userId: string) {
+    await this.findStudent(id, userId);
 
     await this.prisma.student.delete({
       where: { id },
@@ -78,7 +95,8 @@ export class UniversitiesService {
   }
 
   // Поиск студентов по навыкам
-  async findStudentsBySkills(universityId: string, skillIds: string[]) {
+  async findStudentsBySkills(userId: string, skillIds: string[]) {
+    const universityId = await this.getUniversityProfileId(userId);
     return this.prisma.student.findMany({
       where: {
         universityId,
@@ -102,7 +120,8 @@ export class UniversitiesService {
   }
 
   // Статистика по студентам
-  async getStudentStats(universityId: string) {
+  async getStudentStats(userId: string) {
+    const universityId = await this.getUniversityProfileId(userId);
     const [totalStudents, studentsWithSkills, topSkills] = await Promise.all([
       this.prisma.student.count({
         where: { universityId },
