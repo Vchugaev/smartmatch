@@ -17,6 +17,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ResumesModule } from './modules/resumes/resumes.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     StorageModule,
     DashboardModule,
     ResumesModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
