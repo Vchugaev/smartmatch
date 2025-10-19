@@ -5,11 +5,12 @@ import { AiTestController } from './ai.controller.test';
 import { AiPublicController } from './ai-public.controller';
 import { AiService } from './ai.service';
 import { OllamaService } from './ollama.service';
+import { CandidateAnalysisService } from './candidate-analysis.service';
 
 @Module({
   imports: [ConfigModule],
   controllers: [AiController, AiTestController, AiPublicController],
-  providers: [AiService, OllamaService],
-  exports: [AiService, OllamaService],
+  providers: [AiService, OllamaService, CandidateAnalysisService],
+  exports: [AiService, OllamaService, CandidateAnalysisService],
 })
 export class AiModule {}
