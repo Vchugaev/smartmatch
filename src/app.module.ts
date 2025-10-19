@@ -18,6 +18,10 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ResumesModule } from './modules/resumes/resumes.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { AiModule } from './modules/ai/ai.module';
+import { InternshipRequestsModule } from './modules/internship-requests/internship-requests.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { InternshipsModule } from './modules/internships/internships.module';
+import { HrModule } from './modules/hr/hr.module';
 
 @Module({
   imports: [
@@ -45,6 +49,10 @@ import { AiModule } from './modules/ai/ai.module';
     DashboardModule,
     ResumesModule,
     AiModule,
+    InternshipRequestsModule,
+    NotificationsModule,
+    InternshipsModule,
+    HrModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -28,10 +28,17 @@ export class ApplicationsController {
   @Get('my')
   @UseGuards(JwtAuthGuard)
   findMyApplications(@Request() req) {
+    console.log(`🔍 Запрос /applications/my для пользователя: ${req.user.id}, роль: ${req.user.role}`);
+    
     if (req.user.role === 'HR') {
+      console.log('👔 Обработка как HR');
       return this.applicationsService.findByHR(req.user.id);
     } else if (req.user.role === 'CANDIDATE') {
+      console.log('👤 Обработка как кандидат');
       return this.applicationsService.findByCandidate(req.user.id);
+    } else {
+      console.log(`❌ Неизвестная роль: ${req.user.role}`);
+      return [];
     }
   }
 
@@ -51,5 +58,17 @@ export class ApplicationsController {
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string, @Request() req) {
     return this.applicationsService.remove(id, req.user.id);
+  }
+
+  @Get('debug/my')
+  @UseGuards(JwtAuthGuard)
+  debugMyApplications(@Request() req) {
+    return this.applicationsService.debugMyApplications(req.user.id, req.user.role);
+  }
+
+  @Get('debug/permissions/:id')
+  @UseGuards(JwtAuthGuard)
+  debugPermissions(@Param('id') id: string, @Request() req) {
+    return this.applicationsService.debugPermissions(id, req.user.id, req.user.role);
   }
 }

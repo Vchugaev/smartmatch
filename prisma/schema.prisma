@@ -133,6 +133,25 @@ enum ModerationStatus {
   DRAFT
 }
 
+// Статусы заявок на стажировки от университетов
+enum InternshipRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// Статусы стажировок
+enum InternshipStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
 // Типы медиа файлов
 enum MediaType {
   AVATAR
@@ -236,6 +255,11 @@ model HRProfile {
   avatar       MediaFile?    @relation("HRAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
   jobs         Job[]
   applications Application[]
+  approvedInternshipRequests UniversityInternshipRequest[]
+  internshipNotifications    InternshipNotification[]
+  internships  Internship[]
+  internshipApplications InternshipApplication[]
+  internshipParticipants InternshipParticipant[]
 
   @@map("hr_profiles")
 }
@@ -268,6 +292,8 @@ model CandidateProfile {
   applications Application[]
   matches      JobMatch[] // AI матчинг
   resumes      Resume[] // Множественные резюме
+  internshipApplications InternshipApplication[]
+  internshipParticipants InternshipParticipant[]
 
   @@index([isAvailable])
   @@map("candidate_profiles")
@@ -295,6 +321,7 @@ model Resume {
   // Связи
   candidate    CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   applications Application[] // Отклики с этим резюме
+  internshipApplications InternshipApplication[]
 
   @@index([candidateId])
   @@index([isDefault])
@@ -320,6 +347,7 @@ model UniversityProfile {
   logo       MediaFile?  @relation("UniversityLogo", fields: [logoId], references: [id], onDelete: SetNull)
   students   Student[]
   educations Education[]
+  internshipRequests UniversityInternshipRequest[]
 
   @@map("university_profiles")
 }
@@ -390,6 +418,7 @@ model Skill {
   candidateSkills CandidateSkill[]
   studentSkills   StudentSkill[]
   jobSkills       JobSkill[]
+  internshipSkills InternshipSkill[]
 
   @@index([category])
   @@index([isActive])
@@ -817,6 +846,179 @@ model ModeratorProfile {
   // Связи
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   avatar MediaFile? @relation("ModeratorAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  moderatedInternships Internship[]
 
   @@map("moderator_profiles")
+}
+
+// Заявки на стажировки от университетов
+model UniversityInternshipRequest {
+  id              String                   @id @default(cuid())
+  universityId    String
+  specialty       String                   // Специальность
+  studentCount    Int                      // Количество студентов
+  period          String                   // Период стажировки (например, "3 месяца")
+  startDate       DateTime                 // Дата начала
+  endDate         DateTime                 // Дата окончания
+  description     String?                  // Описание стажировки
+  requirements    String?                  // Требования к студентам
+  skills          Json?                    // Навыки в JSON формате
+  location        String?                  // Локация стажировки
+  isRemote        Boolean                  @default(false) // Удаленная стажировка
+  status          InternshipRequestStatus  @default(PENDING)
+  approvedBy      String?                 // ID одобрившего HR
+  approvedAt      DateTime?               // Дата одобрения
+  rejectionReason String?                  // Причина отклонения
+  notes           String?                  // Заметки HR
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  // Связи
+  university      UniversityProfile        @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  approvedByHR    HRProfile?              @relation(fields: [approvedBy], references: [id], onDelete: SetNull)
+  notifications   InternshipNotification[] // Уведомления о заявке
+
+  @@index([universityId])
+  @@index([status])
+  @@index([specialty])
+  @@index([startDate])
+  @@map("university_internship_requests")
+}
+
+// Уведомления о заявках на стажировки
+model InternshipNotification {
+  id                    String               @id @default(cuid())
+  requestId             String
+  hrId                  String
+  type                  NotificationType
+  priority              NotificationPriority @default(MEDIUM)
+  status                NotificationStatus   @default(PENDING)
+  title                 String
+  message               String
+  data                  Json?                // Дополнительные данные
+  sentAt                DateTime?
+  readAt                DateTime?
+  createdAt             DateTime             @default(now())
+
+  // Связи
+  request               UniversityInternshipRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  hr                    HRProfile                   @relation(fields: [hrId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([hrId])
+  @@index([status])
+  @@map("internship_notifications")
+}
+
+// Стажировки
+model Internship {
+  id                String           @id @default(cuid())
+  hrId              String
+  title             String           // Название стажировки
+  description       String           // Описание
+  requirements      String?          // Требования к кандидатам
+  responsibilities  String?          // Обязанности
+  benefits          String?          // Преимущества
+  salaryMin         Int?             // Минимальная стипендия
+  salaryMax         Int?             // Максимальная стипендия
+  currency          String           @default("RUB")
+  location          String           // Локация
+  isRemote          Boolean          @default(false) // Удаленная стажировка
+  startDate         DateTime         // Дата начала
+  endDate           DateTime         // Дата окончания
+  duration          Int              // Продолжительность в днях
+  maxParticipants   Int              // Максимальное количество участников
+  currentParticipants Int           @default(0) // Текущее количество участников
+  status            InternshipStatus @default(DRAFT)
+  publishedAt       DateTime?        // Дата публикации
+  deadline          DateTime?        // Дедлайн подачи заявок
+  views             Int              @default(0) // Количество просмотров
+  applicationsCount Int              @default(0) // Количество заявок
+  moderationStatus  ModerationStatus @default(PENDING) // Статус модерации
+  moderatedAt       DateTime?        // Дата модерации
+  moderatorId       String?          // ID модератора
+  moderationNotes   String?          // Заметки модератора
+  skills            Json?            // Навыки в JSON формате
+  tags              Json?            // Теги в JSON формате
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // Связи
+  hr                HRProfile        @relation(fields: [hrId], references: [id], onDelete: Cascade)
+  moderator         ModeratorProfile? @relation(fields: [moderatorId], references: [id], onDelete: SetNull)
+  applications      InternshipApplication[]
+  participants      InternshipParticipant[]
+  skillsRequired    InternshipSkill[]
+
+  @@index([status])
+  @@index([location])
+  @@index([isRemote])
+  @@index([publishedAt])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([views])
+  @@map("internships")
+}
+
+// Заявки на стажировки
+model InternshipApplication {
+  id           String            @id @default(cuid())
+  internshipId String
+  candidateId  String
+  hrId         String
+  resumeId     String?           // Ссылка на резюме
+  status       ApplicationStatus @default(PENDING)
+  coverLetter  String?           // Сопроводительное письмо
+  notes        String?           // Заметки HR
+  appliedAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // Связи
+  internship   Internship        @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  candidate    CandidateProfile  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  hr           HRProfile         @relation(fields: [hrId], references: [id], onDelete: Cascade)
+  resume       Resume?           @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  @@unique([internshipId, candidateId])
+  @@index([status])
+  @@index([appliedAt])
+  @@map("internship_applications")
+}
+
+// Участники стажировки
+model InternshipParticipant {
+  id           String   @id @default(cuid())
+  internshipId String
+  candidateId  String
+  hrId         String
+  joinedAt     DateTime @default(now())
+  leftAt       DateTime?
+  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, DROPPED
+  feedback     String?  // Отзыв о стажировке
+  rating       Int?     // Оценка стажировки (1-5)
+
+  // Связи
+  internship   Internship       @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  candidate    CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  hr           HRProfile        @relation(fields: [hrId], references: [id], onDelete: Cascade)
+
+  @@unique([internshipId, candidateId])
+  @@index([status])
+  @@map("internship_participants")
+}
+
+// Навыки для стажировки
+model InternshipSkill {
+  id           String  @id @default(cuid())
+  internshipId String
+  skillId      String
+  required     Boolean @default(true)
+  level        Int?    // Минимальный уровень навыка
+
+  // Связи
+  internship   Internship @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([internshipId, skillId])
+  @@map("internship_skills")
 }
